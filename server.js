@@ -46,8 +46,8 @@ expressServer.put('/', JSONParser, async (request, response) => {
     text: request.body.text,
   })
     .then(() => {
-      console.log(`Updated task ${request.headers.id}`)
-      response.send(`Server: updated task ${request.headers.id}`)
+      console.log(`Updated task "${request.headers.id}"`)
+      response.send(`Server: updated task "${request.headers.id}"`)
     })
     .catch((err) => {
       if (err) return console.log(err)
@@ -57,8 +57,8 @@ expressServer.put('/', JSONParser, async (request, response) => {
 expressServer.delete('/', (request, response) => {
   Task.findByIdAndDelete(request.headers.id.replace(/['"]+/g, ''))
   .then(() => {
-    console.log(`Deleted task ${request.headers.id}`)
-    response.send(`Server: deleted task ${request.headers.id}`)
+    console.log(`Deleted task "${request.headers.id}"`)
+    response.send(`Server: deleted task "${request.headers.id}"`)
   })
   .catch((err) => {
     if (err) return console.log(err)

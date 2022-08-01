@@ -33,8 +33,6 @@ class TaskField extends HTMLElement {
     super()
     let textarea = document.createElement('textarea')
     textarea.spellcheck = false
-    //this.column = this.className.match(/\d+/)[0]
-    //this.row = [...this.parentElement.children].indexOf(this)
     textarea.oninput = () => {
       // making the size of the text-field auto-fit the length of the text
       textarea.style.height = '1px'
@@ -82,6 +80,7 @@ function addTask(column) {
   let columnLastElement = columnArr[columnArr.length - 1]
   let newTask = `<task-field class="${column}"></task-field>`
   columnLastElement.insertAdjacentHTML('beforebegin', newTask)
+  columnArr[columnArr.length - 2].lastChild.focus() // this ensures that a new db entry is created for an empty task
 }
 
 //This function adds a new column
@@ -101,27 +100,40 @@ function addTaskType(lastColNum) {
   lastColumn.insertAdjacentHTML('beforebegin', newColumn)
   lastColumn.remove()
   numOfCols++
+  let columnArr = document.querySelector(`#column${lastColNum}`).children
+  columnArr[columnArr.length - 2].lastChild.focus() // this ensures that a new db entry is created for the first task
 }
 
 //This function removes various elements on a right click (or long tap on mobile)
-const removeTask = async (event) => {
+const removeTaskFromDB = async (taskId) => {
+  await fetch('/', {
+    method: 'DELETE',
+    headers: { id: taskId },
+  })
+    .then((response) => response.text())
+    .then((responseText) => console.log(responseText))
+}
+
+const removeTask = (event) => {
   switch (event.target.nodeName) {
     case 'TASK-FIELD':
       event.target.remove()
       event.preventDefault()
       if (event.target.id) {
-        await fetch('/', {
-          method: 'DELETE',
-          headers: { id: event.target.id },
-        })
-          .then((response) => response.text())
-          .then((responseText) => console.log(responseText))
+        removeTaskFromDB(event.target.id)
       }
       break
 
     case 'INPUT': // removes a column
       event.preventDefault()
       numOfCols--
+      document
+        .querySelector(`#${event.path[1].id}`)
+        .children.forEach((taskToRemove) => {
+          if (taskToRemove.nodeName === 'TASK-FIELD') {
+            removeTaskFromDB(taskToRemove.id)
+          }
+        })
       document.querySelector(`#${event.path[1].id}`).remove() // removing the actual column
       // changing the html parameters of the remaining columns to fit the new order:
       columns.forEach((col) => {
