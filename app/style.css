@@ -1,0 +1,87 @@
+html,
+body {
+  background-color: #7f3594;
+  margin: 0;
+  padding: 0;
+}
+
+#task-grid {
+  display: inline-grid;
+  column-gap: 25px;
+  grid-template-columns: max-content;
+  align-items: flex-start;
+  margin-left: 25px;
+  margin-top: 50px;
+}
+
+.column {
+  display: grid;
+  gap: 15px;
+  color: white;
+}
+
+task-field {
+  background-color: white;
+  padding: 5px;
+  border-radius: 5px;
+  box-shadow: 3px 3px 4px #444444;
+  width: 200px;
+}
+
+button.add {
+  background: transparent;
+  color: white;
+  border-style: hidden;
+  font-family: 'Segoe UI', Verdana, Tahoma, Geneva, sans-serif;
+  font-weight: bold;
+  font-size: 12pt;
+  text-align: left;
+  width: 200px;
+}
+
+button.add:hover {
+  opacity: 0.8;
+  cursor: pointer;
+}
+
+textarea {
+  outline: none;
+  border-style: hidden;
+  border-width: 0px;
+  resize: none;
+  font-family: 'Segoe UI', Verdana, Tahoma, Geneva, sans-serif;
+  font-weight: 400;
+  font-size: 12pt;
+  height: 25px;
+}
+
+input {
+  background: transparent;
+  color: white;
+  font-family: 'Segoe UI', Verdana, Tahoma, Geneva, sans-serif;
+  font-weight: bold;
+  font-size: 12pt;
+  border: 0px solid;
+}
+
+input:focus {
+  outline: none;
+  order: 0px solid;
+}
+
+input:hover {
+  opacity: 0.8;
+}
+
+#myTasks {
+  font-family: Georgia, 'Times New Roman', Times, serif;
+  font-size: 18pt;
+  font-weight: bold;
+  color: white;
+  background-color: #5d5b64;
+  padding: 5px;
+  text-align: center;
+  font-style: italic;
+  width: 100%;
+  position: fixed;
+}
