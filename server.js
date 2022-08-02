@@ -8,7 +8,6 @@ expressServer.get('/', function (request, response) {
   response.sendFile(__dirname + '/app/index.html')
 })
 const JSONParser = express.json({ type: 'application/json' })
-expressServer.listen(3000)
 
 // mongodb connection via mongoose and setting up the task scheme
 
@@ -16,12 +15,20 @@ const Schema = mongoose.Schema
 const tasksScheme = new Schema({
   column: Number,
   row: Number,
-  text: String,
+  text: String
 })
-mongoose.connect('mongodb://localhost:27017/tasksdb', {
-  useUnifiedTopology: true,
-  useNewUrlParser: true,
-})
+mongoose.connect(
+  'mongodb://localhost:27017/tasksdb',
+  {
+    useUnifiedTopology: true,
+    useNewUrlParser: true
+  }, err => {
+    if (err) return console.log(err)
+    expressServer.listen(3000, function () {
+      console.log('The server is up at http://localhost:3000/...')
+    })
+  }
+)
 const Task = mongoose.model('Task', tasksScheme)
 
 //getting tasks from the app and adding them to mongodb
@@ -40,10 +47,12 @@ expressServer.post('/', JSONParser, async (request, response) => {
 })
 
 expressServer.put('/', JSONParser, async (request, response) => {
+  console.log(request.headers.id)
+  console.log(request.body)
   await Task.findByIdAndUpdate(request.headers.id.replace(/['"]+/g, ''), {
     column: request.body.column,
     row: request.body.row,
-    text: request.body.text,
+    text: request.body.text
   })
     .then(() => {
       console.log(`Updated task "${request.headers.id}"`)
@@ -56,11 +65,11 @@ expressServer.put('/', JSONParser, async (request, response) => {
 
 expressServer.delete('/', (request, response) => {
   Task.findByIdAndDelete(request.headers.id.replace(/['"]+/g, ''))
-  .then(() => {
-    console.log(`Deleted task "${request.headers.id}"`)
-    response.send(`Server: deleted task "${request.headers.id}"`)
-  })
-  .catch((err) => {
-    if (err) return console.log(err)
-  })
+    .then(() => {
+      console.log(`Deleted task "${request.headers.id}"`)
+      response.send(`Server: deleted task "${request.headers.id}"`)
+    })
+    .catch((err) => {
+      if (err) return console.log(err)
+    })
 })

@@ -1,16 +1,16 @@
-//This enables the ServiceWorker functionality, so the app can function as a PWA
+//serverWorkers enable PWA functionality
 window.addEventListener('load', async () => {
   if ('serviceWorker' in navigator) {
     try {
       const reg = await navigator.serviceWorker.register('serviceworkers.js')
-      console.log('ServiceWorker register success', reg)
-    } catch (e) {
-      console.log('ServiceWorker register fail')
+      console.log('ServiceWorker registered', reg)
+    } catch (err) {
+      console.log('ServiceWorker registration error', err)
     }
   }
 })
 
-//Some functions to simplify working with the code below
+//auxiliary stuff to simplify the rest of the code
 HTMLCollection.prototype.forEach = Array.prototype.forEach
 taskGrid = () => {
   console.log(document.querySelector('#task-grid'))
@@ -27,7 +27,9 @@ function taskText(col, task, text) {
   else columns[col - 1].children[task].children[0].value = text
 }
 
-//Defining the functionality of a task field
+/**a taskField as a custom html element that contains a stylable <div> and a <textarea> within it that interacts with mongodb on backend
+ * focus() functions ensure that new tasks get focus, so that when they lose it ("onblur" event) a new db entry is created or updated */
+
 class TaskField extends HTMLElement {
   constructor() {
     super()
@@ -38,7 +40,6 @@ class TaskField extends HTMLElement {
       textarea.style.height = '1px'
       textarea.style.height = textarea.scrollHeight + 'px'
     }
-    // upon change, this sends a task with its info to backend
     textarea.onblur = async () => {
       let taskInfo = {
         column: this.className.match(/\d+/)[0],
@@ -73,17 +74,17 @@ class TaskField extends HTMLElement {
   }
 }
 customElements.define('task-field', TaskField)
+taskField(1, 1).lastChild.focus()
 
-//This function adds a new task to a column
 function addTask(column) {
   let columnArr = document.querySelector(`#${column}`).children
   let columnLastElement = columnArr[columnArr.length - 1]
   let newTask = `<task-field class="${column}"></task-field>`
   columnLastElement.insertAdjacentHTML('beforebegin', newTask)
-  columnArr[columnArr.length - 2].lastChild.focus() // this ensures that a new db entry is created for an empty task
+  columnArr[columnArr.length - 2].lastChild.focus()
 }
 
-//This function adds a new column
+//adding columns (task type == column)
 var numOfCols = 2
 function addTaskType(lastColNum) {
   let newColumn = `<div class="column" id="column${lastColNum}" style="grid-column: ${lastColNum}">
@@ -101,10 +102,9 @@ function addTaskType(lastColNum) {
   lastColumn.remove()
   numOfCols++
   let columnArr = document.querySelector(`#column${lastColNum}`).children
-  columnArr[columnArr.length - 2].lastChild.focus() // this ensures that a new db entry is created for the first task
+  columnArr[columnArr.length - 2].lastChild.focus()
 }
 
-//This function removes various elements on a right click (or long tap on mobile)
 const removeTaskFromDB = async (taskId) => {
   await fetch('/', {
     method: 'DELETE',
@@ -114,14 +114,35 @@ const removeTaskFromDB = async (taskId) => {
     .then((responseText) => console.log(responseText))
 }
 
-const removeTask = (event) => {
+const removeTask = async (event) => {
   switch (event.target.nodeName) {
     case 'TASK-FIELD':
-      event.target.remove()
       event.preventDefault()
-      if (event.target.id) {
-        removeTaskFromDB(event.target.id)
-      }
+      let thisColTasks = event.target.parentElement.children
+      removeTaskFromDB(event.target.id)
+      event.target.remove()
+      //and to change row numbers of the remaining tasks in this column:
+      thisColTasks.forEach(async (taskToUpdateRow) => {
+        if (
+          taskToUpdateRow.nodeName === 'TASK-FIELD' &&
+          taskToUpdateRow.id !== event.target.id
+        ) {
+          console.log(taskToUpdateRow.id)
+          console.log([...thisColTasks].indexOf(taskToUpdateRow))
+          await fetch('/', {
+            method: 'PUT',
+            headers: {
+              'Content-Type': 'application/json',
+              id: taskToUpdateRow.id,
+            },
+            body: JSON.stringify({
+              row: [...thisColTasks].indexOf(taskToUpdateRow),
+            })
+          })
+            .then((response) => response.text())
+            .then((responseText) => console.log(responseText))
+        }
+      })
       break
 
     case 'INPUT': // removes a column
@@ -140,6 +161,7 @@ const removeTask = (event) => {
         let colNum = [...columns].indexOf(col) + 1
         col.id = `column${colNum}`
         col.style = `grid-column: ${colNum}`
+        // the last col would be "add task type" button, so:
         if (col !== columns[columns.length - 1]) {
           // changing the 'add task' buttons
           col.children[
@@ -158,4 +180,4 @@ const removeTask = (event) => {
       })
   }
 }
-document.body.addEventListener('contextmenu', removeTask, true)
+document.body.addEventListener('contextmenu', removeTask, true) // contextmenu == rightclick or long tap on mobile
