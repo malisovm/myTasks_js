@@ -15,14 +15,15 @@ const Schema = mongoose.Schema
 const tasksScheme = new Schema({
   column: Number,
   row: Number,
-  text: String
+  text: String,
 })
 mongoose.connect(
   'mongodb://localhost:27017/tasksdb',
   {
     useUnifiedTopology: true,
-    useNewUrlParser: true
-  }, err => {
+    useNewUrlParser: true,
+  },
+  (err) => {
     if (err) return console.log(err)
     expressServer.listen(3000, function () {
       console.log('The server is up at http://localhost:3000/...')
@@ -47,12 +48,10 @@ expressServer.post('/', JSONParser, async (request, response) => {
 })
 
 expressServer.put('/', JSONParser, async (request, response) => {
-  console.log(request.headers.id)
-  console.log(request.body)
   await Task.findByIdAndUpdate(request.headers.id.replace(/['"]+/g, ''), {
     column: request.body.column,
     row: request.body.row,
-    text: request.body.text
+    text: request.body.text,
   })
     .then(() => {
       console.log(`Updated task "${request.headers.id}"`)
@@ -72,4 +71,12 @@ expressServer.delete('/', (request, response) => {
     .catch((err) => {
       if (err) return console.log(err)
     })
+})
+
+expressServer.get('/db', (request, response) => {
+  Task.find({}, function (err, tasks) {
+    if (err) console.log(err)
+    else { console.log(tasks)
+      response.send(tasks) }
+  })
 })
