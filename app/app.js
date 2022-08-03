@@ -27,7 +27,7 @@ function taskText(col, task, text) {
   else columns[col - 1].children[task].children[0].value = text
 }
 
-/*a taskField as a custom html element that contains a stylable <div> and a <textarea> within it that interacts with mongodb on backend
+/*a taskField as a custom stylable html element that contains a <textarea> that interacts with mongodb on backend
  * focus() functions ensure that new tasks get focus, so that when they lose it ("onblur" event) a new db entry is created or updated */
 
 class TaskField extends HTMLElement {
@@ -75,19 +75,55 @@ class TaskField extends HTMLElement {
 }
 customElements.define('task-field', TaskField)
 
+class TaskType extends HTMLInputElement {
+  constructor() {
+    super()
+    this.onblur = async () => {
+      let taskTypeInfo = {
+        column: this.parentElement.id.match(/\d+/)[0],
+        text: this.value,
+      }
+      if (!this.id) {
+        await fetch('/tasktype', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(taskTypeInfo),
+        })
+          .then((response) => response.text())
+          .then((responseText) => {
+            this.id = responseText.split('"')[1]
+            console.log(responseText)
+          })
+      }
+      // for tasks with existing id in mongodb
+      else if (this.id) {
+        await fetch('/tasktype', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json', id: this.id },
+          body: JSON.stringify(taskTypeInfo),
+        })
+          .then((response) => response.text())
+          .then((responseText) => console.log(responseText))
+      }
+    }
+  }
+}
+customElements.define('task-type', TaskType, { extends: 'input' })
+
 function addTask(column, fromSaved) {
   let columnArr = document.querySelector(`#${column}`).children
   let columnLastElement = columnArr[columnArr.length - 1]
   let newTask = `<task-field class="${column}"></task-field>`
   columnLastElement.insertAdjacentHTML('beforebegin', newTask)
   if (!fromSaved) {
-  columnArr[columnArr.length - 2].lastChild.focus()}
+    columnArr[columnArr.length - 2].lastChild.focus()
+  }
 }
 
 var numOfCols = 2
 function addColumn(lastColNum) {
   let newColumn = `<div class="column" id="column${lastColNum}" style="grid-column: ${lastColNum}">
-  <input value="Enter task type" onfocus="this.value=''">
+  <input is="task-type" value="Enter task type" onfocus="this.value=''">
   <button class="add" onclick="addTask('column${lastColNum}')">+ Add task</button>
   </div>
   <div class="column" id="column${lastColNum + 1}" style="grid-column: ${
@@ -104,13 +140,22 @@ function addColumn(lastColNum) {
 
 function addColumnAndTask() {
   addColumn(numOfCols)
-  addTask(`column${numOfCols-1}`)
+  addTask(`column${numOfCols - 1}`)
 }
 
 const removeTaskFromDB = async (taskId) => {
   await fetch('/', {
     method: 'DELETE',
     headers: { id: taskId },
+  })
+    .then((response) => response.text())
+    .then((responseText) => console.log(responseText))
+}
+
+const removeTaskTypeFromDB = async (taskTypeId) => {
+  await fetch('/tasktype', {
+    method: 'DELETE',
+    headers: { id: taskTypeId },
   })
     .then((response) => response.text())
     .then((responseText) => console.log(responseText))
@@ -154,8 +199,11 @@ const removeTask = async (event) => {
           if (taskToRemove.nodeName === 'TASK-FIELD') {
             removeTaskFromDB(taskToRemove.id)
           }
+          if (taskToRemove instanceof TaskType) {
+            removeTaskTypeFromDB(taskToRemove.id)
+          }
         })
-      document.querySelector(`#${event.path[1].id}`).remove() // removing the actual column
+      document.querySelector(`#${event.path[1].id}`).remove() // removing the actual column in UI
       // changing the html parameters of the remaining columns to fit the new order:
       columns.forEach((col) => {
         let colNum = [...columns].indexOf(col) + 1
@@ -181,8 +229,17 @@ const removeTask = async (event) => {
                   id: taskToUpdateColumn.id,
                 },
                 body: JSON.stringify({
-                  column: colNum
+                  column: colNum,
                 }),
+              })
+            } else if (taskToUpdateColumn == col.children[0]) {
+              await fetch('/tasktype', {
+                method: 'PUT',
+                headers: {
+                  'Content-Type': 'application/json',
+                  id: taskToUpdateColumn.id,
+                },
+                body: JSON.stringify({ column: colNum }),
               })
             }
           })
@@ -193,7 +250,6 @@ const removeTask = async (event) => {
 document.body.addEventListener('contextmenu', removeTask, true) // contextmenu == rightclick or long tap on mobile
 
 window.onload = async () => {
-  // GET "/" serves index.html by default, so have to change it to 'db'
   let savedTasks = await fetch('/db', {
     method: 'GET',
     headers: {
@@ -220,5 +276,19 @@ window.onload = async () => {
     let thisTask = taskField(savedTask.column, savedTask.row)
     thisTask.id = savedTask._id
     thisTask.lastChild.value = savedTask.text
+  })
+  // THIS SHOULD BE TASK TYPES:
+  let savedTaskTypes = await fetch('/tasktype', {
+    method: 'GET',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+  })
+    .then((response) => response.text())
+    .then((responseText) => JSON.parse(responseText))
+  savedTaskTypes.forEach((savedTaskType) => {
+    console.log('Server: found saved task type', savedTaskType)
+    column(savedTaskType.column).children[0].id = savedTaskType._id
+    column(savedTaskType.column).children[0].value = savedTaskType.text
   })
 }
