@@ -75,8 +75,7 @@ expressServer.delete('/', (request, response) => {
 
 expressServer.get('/db', (request, response) => {
   Task.find({}, function (err, tasks) {
-    if (err) console.log(err)
-    else { console.log(tasks)
-      response.send(tasks) }
+    //if (err) console.log(err)
+    response.send(tasks)
   })
 })

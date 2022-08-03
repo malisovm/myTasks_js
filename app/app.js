@@ -60,7 +60,7 @@ class TaskField extends HTMLElement {
           })
       }
       // for tasks with existing id in mongodb
-      else {
+      else if (this.id) {
         await fetch('/', {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json', id: this.id },
@@ -75,15 +75,15 @@ class TaskField extends HTMLElement {
 }
 customElements.define('task-field', TaskField)
 
-function addTask(column) {
+function addTask(column, fromSaved) {
   let columnArr = document.querySelector(`#${column}`).children
   let columnLastElement = columnArr[columnArr.length - 1]
   let newTask = `<task-field class="${column}"></task-field>`
   columnLastElement.insertAdjacentHTML('beforebegin', newTask)
-  columnArr[columnArr.length - 2].lastChild.focus()
+  if (!fromSaved) {
+  columnArr[columnArr.length - 2].lastChild.focus()}
 }
 
-//adding columns (task type == column)
 var numOfCols = 2
 function addColumn(lastColNum) {
   let newColumn = `<div class="column" id="column${lastColNum}" style="grid-column: ${lastColNum}">
@@ -105,13 +105,7 @@ function addColumn(lastColNum) {
 function addColumnAndTask() {
   addColumn(numOfCols)
   addTask(`column${numOfCols-1}`)
-  //columns[numOfCols-1].lastChild.focus()
 }
-
-/*<input value="Enter task type" onfocus="this.value=''">
-  <task-field class="column${lastColNum}"></task-field>
-  <button class="add" onclick="addTask('column${lastColNum}')">+ Add task</button>
-  </div>*/
 
 const removeTaskFromDB = async (taskId) => {
   await fetch('/', {
@@ -174,12 +168,22 @@ const removeTask = async (event) => {
             col.children.length - 1
           ].outerHTML = `<button class="add" onclick="addTask('column${colNum}')">+ Add task</button>`
           // changing tasks
-          col.children.forEach((task) => {
+          col.children.forEach(async (taskToUpdateColumn) => {
             if (
-              task !== col.children[0] &&
-              task !== col.children[col.children.length - 1]
+              taskToUpdateColumn !== col.children[0] &&
+              taskToUpdateColumn !== col.children[col.children.length - 1]
             ) {
-              task.className = `column${colNum}`
+              taskToUpdateColumn.className = `column${colNum}`
+              await fetch('/', {
+                method: 'PUT',
+                headers: {
+                  'Content-Type': 'application/json',
+                  id: taskToUpdateColumn.id,
+                },
+                body: JSON.stringify({
+                  column: colNum
+                }),
+              })
             }
           })
         }
@@ -212,6 +216,9 @@ window.onload = async () => {
     addColumn(i + 1)
   }
   savedTasks.forEach((savedTask) => {
-    addTask(`column${savedTask.column}`)
+    addTask(`column${savedTask.column}`, true)
+    let thisTask = taskField(savedTask.column, savedTask.row)
+    thisTask.id = savedTask._id
+    thisTask.lastChild.value = savedTask.text
   })
 }
