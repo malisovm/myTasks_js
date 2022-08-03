@@ -7,9 +7,9 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "node server.js"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
+  "keywords": ["taskmanager", "kanban"],
+  "author": "Mikhail Malisov",
+  "license": "proprietary",
   "dependencies": {
     "express": "^4.18.1",
     "mongoose": "^6.5.0"
