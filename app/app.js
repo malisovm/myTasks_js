@@ -262,10 +262,10 @@ window.onload = async () => {
     addTask(`column1`)
     taskField(1, 1).lastChild.focus()
   }
+  console.log('Server: found saved tasks\n', savedTasks)
   let savedColumns = []
   savedTasks.forEach((savedTask) => {
     savedColumns.push(savedTask.column)
-    console.log('Server: found saved task', savedTask)
   })
   let numOfSavedCols = Math.max(...savedColumns)
   for (i = 1; i < numOfSavedCols; i++) {
@@ -276,6 +276,8 @@ window.onload = async () => {
     let thisTask = taskField(savedTask.column, savedTask.row)
     thisTask.id = savedTask._id
     thisTask.lastChild.value = savedTask.text
+    thisTask.lastChild.style.height = '1px'
+    thisTask.lastChild.style.height = thisTask.lastChild.scrollHeight + 'px'
   })
   // THIS SHOULD BE TASK TYPES:
   let savedTaskTypes = await fetch('/tasktype', {
@@ -286,9 +288,9 @@ window.onload = async () => {
   })
     .then((response) => response.text())
     .then((responseText) => JSON.parse(responseText))
-  savedTaskTypes.forEach((savedTaskType) => {
-    console.log('Server: found saved task type', savedTaskType)
-    column(savedTaskType.column).children[0].id = savedTaskType._id
+  console.log('Server: found saved task types\n', savedTaskTypes)
+    savedTaskTypes.forEach((savedTaskType) => {
+        column(savedTaskType.column).children[0].id = savedTaskType._id
     column(savedTaskType.column).children[0].value = savedTaskType.text
   })
 }

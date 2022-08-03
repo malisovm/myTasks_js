@@ -20,6 +20,7 @@ mongoose.connect(
   },
   (err) => {
     if (err) return console.log(err)
+    else console.log('Opening a Mongoose connection...')
     expressServer.listen(3000, function () {
       console.log('The server is up at http://localhost:3000/...')
     })
