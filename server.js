@@ -13,6 +13,7 @@ const Schema = mongoose.Schema
 // mongodb connection via mongoose
 
 mongoose.connect(
+  //this is mongodb atlas
   'mongodb+srv://user12345:12345@cluster1.mgmwwie.mongodb.net',
   //'mongodb://localhost:27017/tasksdb',
   {
@@ -23,8 +24,8 @@ mongoose.connect(
     if (err) return console.log(err)
     else if (mongoose.connection.readyState === 1)
       console.log('Mongoose connection established')
-    expressServer.listen(3000, function () {
-      console.log('The server is up at http://localhost:3000')
+    expressServer.listen(process.env.PORT || 3000, function () {
+      console.log(`The server is up at PORT ${process.env.PORT || 3000}`)
     })
   }
 )
@@ -38,7 +39,7 @@ const tasksScheme = new Schema({
 })
 const Task = mongoose.model('Task', tasksScheme)
 
-expressServer.post('/', JSONParser, async (request, response) => {
+expressServer.post('/tasks', JSONParser, async (request, response) => {
   let newTask = new Task(request.body)
   await newTask
     .save()
@@ -51,7 +52,7 @@ expressServer.post('/', JSONParser, async (request, response) => {
     })
 })
 
-expressServer.put('/', JSONParser, async (request, response) => {
+expressServer.put('/tasks', JSONParser, async (request, response) => {
   await Task.findByIdAndUpdate(request.headers.id.replace(/['"]+/g, ''), {
     column: request.body.column,
     row: request.body.row,
@@ -66,7 +67,7 @@ expressServer.put('/', JSONParser, async (request, response) => {
     })
 })
 
-expressServer.delete('/', (request, response) => {
+expressServer.delete('/tasks', (request, response) => {
   Task.findByIdAndDelete(request.headers.id.replace(/['"]+/g, ''))
     .then(() => {
       console.log(`Deleted task "${request.headers.id}"`)
@@ -77,8 +78,7 @@ expressServer.delete('/', (request, response) => {
     })
 })
 
-// GET "/" serves index.html by default, so have to change it to 'db'
-expressServer.get('/db', (request, response) => {
+expressServer.get('/tasks', (request, response) => {
   Task.find({}, function (err, tasks) {
     if (err) console.log(err)
     response.send(tasks)
@@ -93,7 +93,7 @@ const tasksTypeScheme = new Schema({
 })
 const TaskType = mongoose.model('TaskType', tasksTypeScheme)
 
-expressServer.post('/tasktype', JSONParser, async (request, response) => {
+expressServer.post('/tasktypes', JSONParser, async (request, response) => {
   let newTaskType = new TaskType(request.body)
   await newTaskType
     .save()
@@ -106,7 +106,7 @@ expressServer.post('/tasktype', JSONParser, async (request, response) => {
     })
 })
 
-expressServer.put('/tasktype', JSONParser, async (request, response) => {
+expressServer.put('/tasktypes', JSONParser, async (request, response) => {
   await TaskType.findByIdAndUpdate(request.headers.id.replace(/['"]+/g, ''), {
     column: request.body.column,
     text: request.body.text,
@@ -120,7 +120,7 @@ expressServer.put('/tasktype', JSONParser, async (request, response) => {
     })
 })
 
-expressServer.delete('/tasktype', (request, response) => {
+expressServer.delete('/tasktypes', (request, response) => {
   TaskType.findByIdAndDelete(request.headers.id.replace(/['"]+/g, ''))
     .then(() => {
       console.log(`Deleted task type "${request.headers.id}"`)
@@ -131,7 +131,7 @@ expressServer.delete('/tasktype', (request, response) => {
     })
 })
 
-expressServer.get('/tasktype', (request, response) => {
+expressServer.get('/tasktypes', (request, response) => {
   TaskType.find({}, function (err, taskTypes) {
     if (err) console.log(err)
     response.send(taskTypes)

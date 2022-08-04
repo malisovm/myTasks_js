@@ -1,14 +1,14 @@
 //serverWorkers enable PWA functionality
-window.addEventListener('load', async () => {
-  if ('serviceWorker' in navigator) {
-    try {
-      const reg = await navigator.serviceWorker.register('serviceworkers.js')
-      console.log('ServiceWorker registered', reg)
-    } catch (err) {
-      console.log('ServiceWorker registration error', err)
-    }
-  }
-})
+//window.addEventListener('load', async () => {
+//  if ('serviceWorker' in navigator) {
+//    try {
+//      const reg = await navigator.serviceWorker.register('serviceworkers.js')
+//      console.log('ServiceWorker registered', reg)
+//    } catch (err) {
+//      console.log('ServiceWorker registration error', err)
+//    }
+//  }
+//})
 
 //auxiliary stuff to simplify the rest of the code
 HTMLCollection.prototype.forEach = Array.prototype.forEach
@@ -48,7 +48,7 @@ class TaskField extends HTMLElement {
       }
       // for new tasks
       if (!this.id) {
-        await fetch('/', {
+        await fetch('/tasks', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(taskInfo),
@@ -61,7 +61,7 @@ class TaskField extends HTMLElement {
       }
       // for tasks with existing id in mongodb
       else if (this.id) {
-        await fetch('/', {
+        await fetch('/tasks', {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json', id: this.id },
           body: JSON.stringify(taskInfo),
@@ -84,7 +84,7 @@ class TaskType extends HTMLInputElement {
         text: this.value,
       }
       if (!this.id) {
-        await fetch('/tasktype', {
+        await fetch('/tasktypes', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(taskTypeInfo),
@@ -97,7 +97,7 @@ class TaskType extends HTMLInputElement {
       }
       // for tasks with existing id in mongodb
       else if (this.id) {
-        await fetch('/tasktype', {
+        await fetch('/tasktypes', {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json', id: this.id },
           body: JSON.stringify(taskTypeInfo),
@@ -144,7 +144,7 @@ function addColumnAndTask() {
 }
 
 const removeTaskFromDB = async (taskId) => {
-  await fetch('/', {
+  await fetch('/tasks', {
     method: 'DELETE',
     headers: { id: taskId },
   })
@@ -153,7 +153,7 @@ const removeTaskFromDB = async (taskId) => {
 }
 
 const removeTaskTypeFromDB = async (taskTypeId) => {
-  await fetch('/tasktype', {
+  await fetch('/tasktypes', {
     method: 'DELETE',
     headers: { id: taskTypeId },
   })
@@ -174,7 +174,7 @@ const removeTask = async (event) => {
           taskToUpdateRow.nodeName === 'TASK-FIELD' &&
           taskToUpdateRow.id !== event.target.id
         ) {
-          await fetch('/', {
+          await fetch('/tasks', {
             method: 'PUT',
             headers: {
               'Content-Type': 'application/json',
@@ -222,7 +222,7 @@ const removeTask = async (event) => {
               taskToUpdateColumn !== col.children[col.children.length - 1]
             ) {
               taskToUpdateColumn.className = `column${colNum}`
-              await fetch('/', {
+              await fetch('/tasks', {
                 method: 'PUT',
                 headers: {
                   'Content-Type': 'application/json',
@@ -233,7 +233,7 @@ const removeTask = async (event) => {
                 }),
               })
             } else if (taskToUpdateColumn == col.children[0]) {
-              await fetch('/tasktype', {
+              await fetch('/tasktypes', {
                 method: 'PUT',
                 headers: {
                   'Content-Type': 'application/json',
@@ -250,7 +250,7 @@ const removeTask = async (event) => {
 document.body.addEventListener('contextmenu', removeTask, true) // contextmenu == rightclick or long tap on mobile
 
 window.onload = async () => {
-  let savedTasks = await fetch('/db', {
+  let savedTasks = await fetch('/tasks', {
     method: 'GET',
     headers: {
       'Content-Type': 'application/json',
@@ -279,8 +279,8 @@ window.onload = async () => {
     thisTask.lastChild.style.height = '1px'
     thisTask.lastChild.style.height = thisTask.lastChild.scrollHeight + 'px'
   })
-  // THIS SHOULD BE TASK TYPES:
-  let savedTaskTypes = await fetch('/tasktype', {
+
+  let savedTaskTypes = await fetch('/tasktypes', {
     method: 'GET',
     headers: {
       'Content-Type': 'application/json',

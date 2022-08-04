@@ -1,4 +1,7 @@
-//This ServiceWorkers code is not mine, copied "as is" from a lesson on PWAs
+/*This ServiceWorkers code is not mine, copied "as is" from a lesson on PWAs.
+Need to adapt this to my program.
+THIS IS NOT USED RIGHT NOW */
+
 
 const staticCacheName = 's-app-v1'
 const dynamicCacheName = 'd-app-v1'
