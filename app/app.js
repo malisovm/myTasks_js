@@ -289,8 +289,8 @@ window.onload = async () => {
     .then((response) => response.text())
     .then((responseText) => JSON.parse(responseText))
   console.log('Server: found saved task types\n', savedTaskTypes)
-    savedTaskTypes.forEach((savedTaskType) => {
-        column(savedTaskType.column).children[0].id = savedTaskType._id
+  savedTaskTypes.forEach((savedTaskType) => {
+    column(savedTaskType.column).children[0].id = savedTaskType._id
     column(savedTaskType.column).children[0].value = savedTaskType.text
   })
 }

@@ -13,16 +13,18 @@ const Schema = mongoose.Schema
 // mongodb connection via mongoose
 
 mongoose.connect(
-  'mongodb://localhost:27017/tasksdb',
+  'mongodb+srv://user12345:12345@cluster1.mgmwwie.mongodb.net',
+  //'mongodb://localhost:27017/tasksdb',
   {
     useUnifiedTopology: true,
     useNewUrlParser: true,
   },
   (err) => {
     if (err) return console.log(err)
-    else console.log('Opening a Mongoose connection...')
+    else if (mongoose.connection.readyState === 1)
+      console.log('Mongoose connection established')
     expressServer.listen(3000, function () {
-      console.log('The server is up at http://localhost:3000/...')
+      console.log('The server is up at http://localhost:3000')
     })
   }
 )
