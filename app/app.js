@@ -1,20 +1,6 @@
-//serverWorkers enable PWA functionality
-//window.addEventListener('load', async () => {
-//  if ('serviceWorker' in navigator) {
-//    try {
-//      const reg = await navigator.serviceWorker.register('serviceworkers.js')
-//      console.log('ServiceWorker registered', reg)
-//    } catch (err) {
-//      console.log('ServiceWorker registration error', err)
-//    }
-//  }
-//})
-
-//auxiliary stuff to simplify the rest of the code
+//auxiliary stuff to simplify development
 HTMLCollection.prototype.forEach = Array.prototype.forEach
-taskGrid = () => {
-  console.log(document.querySelector('#task-grid'))
-}
+const taskGrid = document.querySelector('#task-grid')
 const columns = document.querySelector('#task-grid').children
 function column(col) {
   return columns[col - 1]
@@ -22,12 +8,12 @@ function column(col) {
 function taskField(col, task) {
   return columns[col - 1].children[task]
 }
-function taskText(col, task, text) {
-  if (!text) return columns[col - 1].children[task].children[0].value
-  else columns[col - 1].children[task].children[0].value = text
+function taskText(col, task) {
+  return columns[col - 1].children[task].children[0].value
 }
 
 /*a taskField as a custom stylable html element that contains a <textarea> that interacts with mongodb on backend
+a taskType is the header at the top of each column in the UI that can be renamed by the user
  * focus() functions ensure that new tasks get focus, so that when they lose it ("onblur" event) a new db entry is created or updated */
 
 class TaskField extends HTMLElement {
@@ -135,7 +121,6 @@ function addColumn(lastColNum) {
   lastColumn.insertAdjacentHTML('beforebegin', newColumn)
   lastColumn.remove()
   numOfCols++
-  let columnArr = document.querySelector(`#column${lastColNum}`).children
 }
 
 function addColumnAndTask() {
@@ -143,19 +128,10 @@ function addColumnAndTask() {
   addTask(`column${numOfCols - 1}`)
 }
 
-const removeTaskFromDB = async (taskId) => {
-  await fetch('/tasks', {
+const removeFromDB = async (path, elementId) => {
+  await fetch(path, {
     method: 'DELETE',
-    headers: { id: taskId },
-  })
-    .then((response) => response.text())
-    .then((responseText) => console.log(responseText))
-}
-
-const removeTaskTypeFromDB = async (taskTypeId) => {
-  await fetch('/tasktypes', {
-    method: 'DELETE',
-    headers: { id: taskTypeId },
+    headers: { id: elementId },
   })
     .then((response) => response.text())
     .then((responseText) => console.log(responseText))
@@ -166,7 +142,7 @@ const removeTask = async (event) => {
     case 'TASK-FIELD':
       event.preventDefault()
       let thisColTasks = event.target.parentElement.children
-      removeTaskFromDB(event.target.id)
+      removeFromDB('/tasks', event.target.id)
       event.target.remove()
       //and to change row numbers of the remaining tasks in this column:
       thisColTasks.forEach(async (taskToUpdateRow) => {
@@ -197,10 +173,10 @@ const removeTask = async (event) => {
         .querySelector(`#${event.path[1].id}`)
         .children.forEach((taskToRemove) => {
           if (taskToRemove.nodeName === 'TASK-FIELD') {
-            removeTaskFromDB(taskToRemove.id)
+            removeFromDB('/tasks', taskToRemove.id)
           }
           if (taskToRemove instanceof TaskType) {
-            removeTaskTypeFromDB(taskToRemove.id)
+            removeFromDB('/tasktypes', taskToRemove.id)
           }
         })
       document.querySelector(`#${event.path[1].id}`).remove() // removing the actual column in UI
@@ -217,10 +193,7 @@ const removeTask = async (event) => {
           ].outerHTML = `<button class="add" onclick="addTask('column${colNum}')">+ Add task</button>`
           // changing tasks
           col.children.forEach(async (taskToUpdateColumn) => {
-            if (
-              taskToUpdateColumn !== col.children[0] &&
-              taskToUpdateColumn !== col.children[col.children.length - 1]
-            ) {
+            if (taskToUpdateColumn.nodeName === 'TASK-FIELD') {
               taskToUpdateColumn.className = `column${colNum}`
               await fetch('/tasks', {
                 method: 'PUT',
@@ -294,3 +267,15 @@ window.onload = async () => {
     column(savedTaskType.column).children[0].value = savedTaskType.text
   })
 }
+
+//serverWorkers enable PWA functionality
+//window.addEventListener('load', async () => {
+//  if ('serviceWorker' in navigator) {
+//    try {
+//      const reg = await navigator.serviceWorker.register('serviceworkers.js')
+//      console.log('ServiceWorker registered', reg)
+//    } catch (err) {
+//      console.log('ServiceWorker registration error', err)
+//    }
+//  }
+//})
