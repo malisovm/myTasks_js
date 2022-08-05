@@ -219,8 +219,8 @@ document.body.addEventListener('click', (event) => {
 })
 
 const removeColumn = async (event) => {
-  if ((event.target.nodeName = 'INPUT')) {
-    event.preventDefault()
+  if ((event.target.nodeName === 'INPUT')) {
+    //event.preventDefault()
     numOfCols--
     document
       .querySelector(`#${event.path[1].id}`)
