@@ -7,7 +7,10 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "node server.js"
   },
-  "keywords": ["taskmanager", "kanban"],
+  "keywords": [
+    "taskmanager",
+    "kanban"
+  ],
   "author": "Mikhail Malisov",
   "license": "proprietary",
   "dependencies": {

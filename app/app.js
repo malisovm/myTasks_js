@@ -1,7 +1,11 @@
 //auxiliary stuff to simplify development
+
 HTMLCollection.prototype.forEach = Array.prototype.forEach
-const taskGrid = document.querySelector('#task-grid')
-const columns = document.querySelector('#task-grid').children
+var taskGrid = document.querySelector('#task-grid')
+var columns = document.querySelector('#task-grid').children
+var contextMenu = document.querySelector('#context-menu')
+var myTasks = document.querySelector('#myTasks')
+
 function column(col) {
   return columns[col - 1]
 }
@@ -19,19 +23,54 @@ a taskType is the header at the top of each column in the UI that can be renamed
 class TaskField extends HTMLElement {
   constructor() {
     super()
+
     let textarea = document.createElement('textarea')
     textarea.spellcheck = false
     textarea.oninput = () => {
-      // making the size of the text-field auto-fit the length of the text
       textarea.style.height = '1px'
       textarea.style.height = textarea.scrollHeight + 'px'
     }
+    textarea.onfocus = () => {
+      // darkening stuff when a taskfield is selected
+      document.querySelectorAll('task-field').forEach((el) => {
+        el.style.backgroundColor = '#999999'
+        el.lastChild.style.backgroundColor = '#999999'
+      })
+      this.style.backgroundColor = 'white'
+      this.lastChild.style.backgroundColor = 'white'
+      document.querySelectorAll('input').forEach((el) => {
+        el.style.color = '#999999'
+      })
+      document.querySelectorAll('button').forEach((el) => {
+        el.style.color = '#999999'
+      })
+      document.body.style.backgroundColor = '#4C2059'
+      myTasks.style.color = '#999999'
+      contextMenu.style.display = 'block'
+      contextMenu.taskId = this.id
+      contextMenu.style.left = `${this.getBoundingClientRect().x + 217}px`
+      contextMenu.style.top = `${this.getBoundingClientRect().y}px`
+    }
     textarea.onblur = async () => {
+      document.querySelectorAll('task-field').forEach((el) => {
+        el.style.backgroundColor = 'white'
+        el.lastChild.style.backgroundColor = 'white'
+      })
+      document.querySelectorAll('input').forEach((el) => {
+        el.style.color = 'white'
+      })
+      document.querySelectorAll('button').forEach((el) => {
+        el.style.color = 'white'
+      })
+      document.body.style.backgroundColor = '#7f3594'
+      myTasks.style.color = 'white'
+
       let taskInfo = {
         column: this.className.match(/\d+/)[0],
         row: [...this.parentElement.children].indexOf(this),
         text: textarea.value,
       }
+
       // for new tasks
       if (!this.id) {
         await fetch('/tasks', {
@@ -45,6 +84,7 @@ class TaskField extends HTMLElement {
             console.log(responseText)
           })
       }
+
       // for tasks with existing id in mongodb
       else if (this.id) {
         await fetch('/tasks', {
@@ -64,11 +104,13 @@ customElements.define('task-field', TaskField)
 class TaskType extends HTMLInputElement {
   constructor() {
     super()
+
     this.onblur = async () => {
       let taskTypeInfo = {
         column: this.parentElement.id.match(/\d+/)[0],
         text: this.value,
       }
+
       if (!this.id) {
         await fetch('/tasktypes', {
           method: 'POST',
@@ -81,6 +123,7 @@ class TaskType extends HTMLInputElement {
             console.log(responseText)
           })
       }
+
       // for tasks with existing id in mongodb
       else if (this.id) {
         await fetch('/tasktypes', {
@@ -137,90 +180,92 @@ const removeFromDB = async (path, elementId) => {
     .then((responseText) => console.log(responseText))
 }
 
-const removeTask = async (event) => {
-  switch (event.target.nodeName) {
-    case 'TASK-FIELD':
-      event.preventDefault()
-      let thisColTasks = event.target.parentElement.children
-      removeFromDB('/tasks', event.target.id)
-      event.target.remove()
-      //and to change row numbers of the remaining tasks in this column:
-      thisColTasks.forEach(async (taskToUpdateRow) => {
-        if (
-          taskToUpdateRow.nodeName === 'TASK-FIELD' &&
-          taskToUpdateRow.id !== event.target.id
-        ) {
-          await fetch('/tasks', {
+const removeTask = document.querySelector('#removeTask')
+removeTask.onclick = async (event) => {
+  let taskToRemove = document.getElementById(contextMenu.taskId)
+  removeFromDB('/tasks', taskToRemove.id)
+  let currentCol = taskToRemove.parentElement
+  taskToRemove.remove()
+  contextMenu.style.display = 'none'
+  //and to change row numbers of the remaining tasks in this column:
+  currentCol.children.forEach(async (taskToUpdateRow) => {
+    if (
+      taskToUpdateRow.nodeName === 'TASK-FIELD' &&
+      taskToUpdateRow.id !== contextMenu.taskId
+    ) {
+      await fetch('/tasks', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          id: taskToUpdateRow.id,
+        },
+        body: JSON.stringify({
+          row: [...currentCol.children].indexOf(taskToUpdateRow),
+        }),
+      })
+        .then((response) => response.text())
+        .then((responseText) => console.log(responseText))
+    }
+  })
+}
+
+document.body.addEventListener('click', (event) => {
+  if (
+    !event.target.classList.contains('item') &&
+    event.target.nodeName !== 'TEXTAREA'
+  ) {
+    contextMenu.style.display = 'none'
+  }
+})
+
+const removeColumn = async (event) => {
+  if ((event.target.nodeName = 'INPUT')) {
+    event.preventDefault()
+    numOfCols--
+    document
+      .querySelector(`#${event.path[1].id}`)
+      .children.forEach((taskToRemove) => {
+        if (taskToRemove.nodeName === 'TASK-FIELD') {
+          removeFromDB('/tasks', taskToRemove.id)
+        }
+        if (taskToRemove instanceof TaskType) {
+          removeFromDB('/tasktypes', taskToRemove.id)
+        }
+      })
+    document.querySelector(`#${event.path[1].id}`).remove() // removing the actual column in UI
+    // changing the html parameters of the remaining columns to fit the new order:
+    columns.forEach((col) => {
+      let colNum = [...columns].indexOf(col) + 1
+      col.id = `column${colNum}`
+      col.style = `grid-column: ${colNum}`
+      // the last col would be "add task type" button, so:
+      if (col !== columns[columns.length - 1]) {
+        // changing the 'add task' buttons
+        col.children[
+          col.children.length - 1
+        ].outerHTML = `<button class="add" onclick="addTask('column${colNum}')">+ Add task</button>`
+        // changing tasks
+        col.children.forEach(async (taskToUpdateColumn) => {
+          let PUTpath
+          if (taskToUpdateColumn.nodeName === 'TASK-FIELD') {
+            taskToUpdateColumn.className = `column${colNum}`
+            PUTpath = '/tasks'
+          } else if (taskToUpdateColumn == col.children[0])
+            PUTpath = '/tasktypes'
+          await fetch(PUTpath, {
             method: 'PUT',
             headers: {
               'Content-Type': 'application/json',
-              id: taskToUpdateRow.id,
+              id: taskToUpdateColumn.id,
             },
-            body: JSON.stringify({
-              row: [...thisColTasks].indexOf(taskToUpdateRow),
-            }),
+            body: JSON.stringify({ column: colNum }),
           })
-            .then((response) => response.text())
-            .then((responseText) => console.log(responseText))
-        }
-      })
-      break
-
-    case 'INPUT': // removes a column
-      event.preventDefault()
-      numOfCols--
-      document
-        .querySelector(`#${event.path[1].id}`)
-        .children.forEach((taskToRemove) => {
-          if (taskToRemove.nodeName === 'TASK-FIELD') {
-            removeFromDB('/tasks', taskToRemove.id)
-          }
-          if (taskToRemove instanceof TaskType) {
-            removeFromDB('/tasktypes', taskToRemove.id)
-          }
         })
-      document.querySelector(`#${event.path[1].id}`).remove() // removing the actual column in UI
-      // changing the html parameters of the remaining columns to fit the new order:
-      columns.forEach((col) => {
-        let colNum = [...columns].indexOf(col) + 1
-        col.id = `column${colNum}`
-        col.style = `grid-column: ${colNum}`
-        // the last col would be "add task type" button, so:
-        if (col !== columns[columns.length - 1]) {
-          // changing the 'add task' buttons
-          col.children[
-            col.children.length - 1
-          ].outerHTML = `<button class="add" onclick="addTask('column${colNum}')">+ Add task</button>`
-          // changing tasks
-          col.children.forEach(async (taskToUpdateColumn) => {
-            if (taskToUpdateColumn.nodeName === 'TASK-FIELD') {
-              taskToUpdateColumn.className = `column${colNum}`
-              await fetch('/tasks', {
-                method: 'PUT',
-                headers: {
-                  'Content-Type': 'application/json',
-                  id: taskToUpdateColumn.id,
-                },
-                body: JSON.stringify({
-                  column: colNum,
-                }),
-              })
-            } else if (taskToUpdateColumn == col.children[0]) {
-              await fetch('/tasktypes', {
-                method: 'PUT',
-                headers: {
-                  'Content-Type': 'application/json',
-                  id: taskToUpdateColumn.id,
-                },
-                body: JSON.stringify({ column: colNum }),
-              })
-            }
-          })
-        }
-      })
+      }
+    })
   }
 }
-document.body.addEventListener('contextmenu', removeTask, true) // contextmenu == rightclick or long tap on mobile
+document.body.addEventListener('contextmenu', removeColumn, true) // contextmenu == rightclick or long tap on mobile
 
 window.onload = async () => {
   let savedTasks = await fetch('/tasks', {
@@ -241,7 +286,7 @@ window.onload = async () => {
     savedColumns.push(savedTask.column)
   })
   let numOfSavedCols = Math.max(...savedColumns)
-  for (i = 1; i < numOfSavedCols; i++) {
+  for (let i = 1; i < numOfSavedCols; i++) {
     addColumn(i + 1)
   }
   savedTasks.forEach((savedTask) => {

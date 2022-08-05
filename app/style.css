@@ -3,6 +3,7 @@ body {
   background-color: #7f3594;
   margin: 0;
   padding: 0;
+  height: 100%
 }
 
 #task-grid {
@@ -24,9 +25,14 @@ task-field {
   background-color: white;
   padding: 5px;
   border-radius: 5px;
-  box-shadow: 3px 3px 4px #444444;
   width: 200px;
+  box-shadow: 3px 3px 4px #444444;
 }
+
+/*would be simpler to dim stuff, but doesn't work properly for some reason*/
+/*task-field:focus-within {
+  box-shadow: 0 0 0 max(100vh, 100vw) rgba(0, 0, 0, .4)
+}*/
 
 button.add {
   background: transparent;
@@ -53,6 +59,8 @@ textarea {
   font-weight: 400;
   font-size: 12pt;
   height: 25px;
+  width: 190px;
+  border-radius: 5px;
 }
 
 input {
@@ -84,4 +92,27 @@ input:hover {
   font-style: italic;
   width: 100%;
   position: fixed;
+}
+
+#context-menu {
+  position: absolute;
+  z-index: 10000;
+  width: 150px;
+  background: #5d5b64;
+  border-radius: 5px;
+  display: none;
+}
+
+#context-menu .item {
+  padding: 8px 10px;
+  font-family: 'Segoe UI', Verdana, Tahoma, Geneva, sans-serif;
+  font-size: 12pt;
+  color: #eee;
+  cursor: pointer;
+  border-radius: inherit;
+}
+
+#context-menu .item:hover {
+  background: white;
+  color: black
 }
