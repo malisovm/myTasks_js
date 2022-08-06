@@ -85,7 +85,7 @@ input:hover {
   opacity: 0.8;
 }
 
-#myTasks {
+#myTasksLogo {
   font-family: Georgia, 'Times New Roman', Times, serif;
   font-size: 18pt;
   font-weight: bold;
@@ -101,7 +101,7 @@ input:hover {
 #context-menu {
   position: absolute;
   z-index: 10000;
-  width: 150px;
+  width: fit-content;
   background: #5d5b64;
   border-radius: 5px;
   display: none;

@@ -4,7 +4,7 @@ HTMLCollection.prototype.forEach = Array.prototype.forEach
 var taskGrid = document.querySelector('#task-grid')
 var columns = document.querySelector('#task-grid').children
 var contextMenu = document.querySelector('#context-menu')
-var myTasks = document.querySelector('#myTasks')
+var myTasksLogo = document.querySelector('#myTasksLogo')
 
 function column(col) {
   return columns[col - 1]
@@ -23,16 +23,34 @@ a taskType is the header at the top of each column in the UI that can be renamed
 class TaskField extends HTMLElement {
   constructor() {
     super()
-
     let textarea = document.createElement('textarea')
     textarea.spellcheck = false
+    var tasksColors = new Map()
+
     textarea.oninput = () => {
       textarea.style.height = '1px'
       textarea.style.height = textarea.scrollHeight + 'px'
     }
-    textarea.onfocus = () => {
-      // darkening stuff when a taskfield is selected
+
+    textarea.onfocus = async () => {
+      // for new tasks
+      if (!this.id) {
+        await fetch('/tasks', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+        })
+          .then((response) => response.text())
+          .then((responseText) => {
+            this.id = responseText.split('"')[1]
+            console.log(responseText)
+          })
+      }
+
+      // darkening stuff + restoring colors
       document.querySelectorAll('task-field').forEach((el) => {
+        if (el.style.backgroundColor)
+          tasksColors.set(el.id, el.style.backgroundColor)
+        else tasksColors.set(el.id, 'white')
         el.style.backgroundColor = '#999999'
         el.lastChild.style.backgroundColor = '#999999'
       })
@@ -45,16 +63,17 @@ class TaskField extends HTMLElement {
         el.style.color = '#999999'
       })
       document.body.style.backgroundColor = '#4C2059'
-      myTasks.style.color = '#999999'
+      myTasksLogo.style.color = '#999999'
       contextMenu.style.display = 'block'
       contextMenu.taskId = this.id
       contextMenu.style.left = `${this.getBoundingClientRect().x + 217}px`
       contextMenu.style.top = `${this.getBoundingClientRect().y}px`
     }
+
     textarea.onblur = async () => {
       document.querySelectorAll('task-field').forEach((el) => {
-        el.style.backgroundColor = 'white'
-        el.lastChild.style.backgroundColor = 'white'
+        el.style.backgroundColor = tasksColors.get(el.id)
+        el.lastChild.style.backgroundColor = tasksColors.get(el.id)
       })
       document.querySelectorAll('input').forEach((el) => {
         el.style.color = 'white'
@@ -63,7 +82,7 @@ class TaskField extends HTMLElement {
         el.style.color = 'white'
       })
       document.body.style.backgroundColor = '#7f3594'
-      myTasks.style.color = 'white'
+      myTasksLogo.style.color = 'white'
 
       let taskInfo = {
         column: this.className.match(/\d+/)[0],
@@ -71,22 +90,8 @@ class TaskField extends HTMLElement {
         text: textarea.value,
       }
 
-      // for new tasks
-      if (!this.id) {
-        await fetch('/tasks', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(taskInfo),
-        })
-          .then((response) => response.text())
-          .then((responseText) => {
-            this.id = responseText.split('"')[1]
-            console.log(responseText)
-          })
-      }
-
       // for tasks with existing id in mongodb
-      else if (this.id) {
+      if (this.id) {
         await fetch('/tasks', {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json', id: this.id },
@@ -104,28 +109,14 @@ customElements.define('task-field', TaskField)
 class TaskType extends HTMLInputElement {
   constructor() {
     super()
-
     this.onblur = async () => {
       let taskTypeInfo = {
         column: this.parentElement.id.match(/\d+/)[0],
         text: this.value,
       }
 
-      if (!this.id) {
-        await fetch('/tasktypes', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(taskTypeInfo),
-        })
-          .then((response) => response.text())
-          .then((responseText) => {
-            this.id = responseText.split('"')[1]
-            console.log(responseText)
-          })
-      }
-
       // for tasks with existing id in mongodb
-      else if (this.id) {
+      if (this.id) {
         await fetch('/tasktypes', {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json', id: this.id },
@@ -149,26 +140,41 @@ function addTask(column, fromSaved) {
   }
 }
 
-var numOfCols = 2
-function addColumn(lastColNum) {
-  let newColumn = `<div class="column" id="column${lastColNum}" style="grid-column: ${lastColNum}">
+async function addColumn(fromSaved) {
+  let newColumn = `<div class="column" id="column${
+    columns.length
+  }" style="grid-column: ${columns.length}">
   <input is="task-type" value="Enter task type" onfocus="this.value=''">
-  <button class="add" onclick="addTask('column${lastColNum}')">+ Add task</button>
+  <button class="add" onclick="addTask('column${
+    columns.length
+  }')">+ Add task</button>
   </div>
-  <div class="column" id="column${lastColNum + 1}" style="grid-column: ${
-    lastColNum + 1
+  <div class="column" id="column${columns.length + 1}" style="grid-column: ${
+    columns.length + 1
   }">
   <button class="add" onclick="addColumnAndTask()">+ Add task type</button>
   </div>`
-  let lastColumn = columns[lastColNum - 1]
+  let lastColumn = columns[columns.length - 1]
   lastColumn.insertAdjacentHTML('beforebegin', newColumn)
   lastColumn.remove()
-  numOfCols++
+  if (!fromSaved) {
+    await fetch('/tasktypes', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ column: columns.length - 1 }),
+    })
+      .then((response) => response.text())
+      .then((responseText) => {
+        let newLastCol = columns[columns.length - 2]
+        newLastCol.children[0].id = responseText.split('"')[1]
+        console.log(responseText)
+      })
+  }
 }
 
 function addColumnAndTask() {
-  addColumn(numOfCols)
-  addTask(`column${numOfCols - 1}`)
+  addColumn()
+  addTask(`column${columns.length - 1}`)
 }
 
 const removeFromDB = async (path, elementId) => {
@@ -209,27 +215,17 @@ removeTask.onclick = async (event) => {
   })
 }
 
-document.body.addEventListener('click', (event) => {
-  if (
-    !event.target.classList.contains('item') &&
-    event.target.nodeName !== 'TEXTAREA'
-  ) {
-    contextMenu.style.display = 'none'
-  }
-})
-
 const removeColumn = async (event) => {
-  if ((event.target.nodeName === 'INPUT')) {
-    //event.preventDefault()
-    numOfCols--
+  if (event.target.nodeName === 'INPUT') {
+    event.preventDefault()
     document
       .querySelector(`#${event.path[1].id}`)
-      .children.forEach((taskToRemove) => {
-        if (taskToRemove.nodeName === 'TASK-FIELD') {
-          removeFromDB('/tasks', taskToRemove.id)
+      .children.forEach((elemToRemove) => {
+        if (elemToRemove.nodeName === 'TASK-FIELD') {
+          removeFromDB('/tasks', elemToRemove.id)
         }
-        if (taskToRemove instanceof TaskType) {
-          removeFromDB('/tasktypes', taskToRemove.id)
+        if (elemToRemove instanceof TaskType) {
+          removeFromDB('/tasktypes', elemToRemove.id)
         }
       })
     document.querySelector(`#${event.path[1].id}`).remove() // removing the actual column in UI
@@ -276,41 +272,45 @@ window.onload = async () => {
   })
     .then((response) => response.text())
     .then((responseText) => JSON.parse(responseText))
-  if (savedTasks.length === 0) {
-    addTask(`column1`)
+
+  if (savedTasks.length !== 0) {
+    console.log('Server: found saved tasks\n', savedTasks)
+    let savedColumns = []
+    savedTasks.forEach((savedTask) => {
+      savedColumns.push(savedTask.column)
+    })
+    let numOfSavedCols = Math.max(...savedColumns)
+    for (let i = 0; i < numOfSavedCols; i++) {
+      addColumn(true)
+    }
+    savedTasks.forEach((savedTask) => {
+      addTask(`column${savedTask.column}`, true)
+      let thisTask = taskField(savedTask.column, savedTask.row)
+      thisTask.id = savedTask._id
+      thisTask.lastChild.value = savedTask.text
+      thisTask.style.backgroundColor = savedTask.color
+      thisTask.lastChild.style.backgroundColor = savedTask.color
+      thisTask.lastChild.style.height = '1px'
+      thisTask.lastChild.style.height = thisTask.lastChild.scrollHeight + 'px'
+    })
+
+    let savedTaskTypes = await fetch('/tasktypes', {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    })
+      .then((response) => response.text())
+      .then((responseText) => JSON.parse(responseText))
+    console.log('Server: found saved task types\n', savedTaskTypes)
+    savedTaskTypes.forEach((savedTaskType) => {
+      column(savedTaskType.column).children[0].id = savedTaskType._id
+      column(savedTaskType.column).children[0].value = savedTaskType.text
+    })
+  } else if (savedTasks.length === 0) {
+    addColumnAndTask()
     taskField(1, 1).lastChild.focus()
   }
-  console.log('Server: found saved tasks\n', savedTasks)
-  let savedColumns = []
-  savedTasks.forEach((savedTask) => {
-    savedColumns.push(savedTask.column)
-  })
-  let numOfSavedCols = Math.max(...savedColumns)
-  for (let i = 1; i < numOfSavedCols; i++) {
-    addColumn(i + 1)
-  }
-  savedTasks.forEach((savedTask) => {
-    addTask(`column${savedTask.column}`, true)
-    let thisTask = taskField(savedTask.column, savedTask.row)
-    thisTask.id = savedTask._id
-    thisTask.lastChild.value = savedTask.text
-    thisTask.lastChild.style.height = '1px'
-    thisTask.lastChild.style.height = thisTask.lastChild.scrollHeight + 'px'
-  })
-
-  let savedTaskTypes = await fetch('/tasktypes', {
-    method: 'GET',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-  })
-    .then((response) => response.text())
-    .then((responseText) => JSON.parse(responseText))
-  console.log('Server: found saved task types\n', savedTaskTypes)
-  savedTaskTypes.forEach((savedTaskType) => {
-    column(savedTaskType.column).children[0].id = savedTaskType._id
-    column(savedTaskType.column).children[0].value = savedTaskType.text
-  })
 }
 
 //serverWorkers enable PWA functionality
@@ -324,3 +324,25 @@ window.onload = async () => {
 //    }
 //  }
 //})
+
+document.body.addEventListener('click', (event) => {
+  if (
+    !event.target.classList.contains('item') &&
+    event.target.nodeName !== 'TEXTAREA'
+  ) {
+    contextMenu.style.display = 'none'
+  }
+})
+
+changeTaskColor.oninput = async () => {
+  let taskToColorize = document.getElementById(contextMenu.taskId)
+  taskToColorize.style.backgroundColor = changeTaskColor.value
+  taskToColorize.lastChild.style.backgroundColor = changeTaskColor.value
+  await fetch('/tasks', {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', id: contextMenu.taskId },
+    body: JSON.stringify({ color: changeTaskColor.value }),
+  })
+    .then((response) => response.text())
+    .then((responseText) => console.log(responseText))
+}

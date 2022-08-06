@@ -12,22 +12,17 @@
 </head>
 
 <body>
-    <div id="myTasks">MyTasks</div>
+    <div id="myTasksLogo">MyTasks</div>
 
     <div id="task-grid">
-        <div class="column" id="column1" style="grid-column: 1">
-            <input is="task-type" value="Enter task type" onfocus="this.value=''">
-            <button class="add" onclick="addTask('column1')">+ Add task</button>
-        </div>
-        <div class="column" id="column2" style="grid-column: 2">
+        <div class="column" id="column1" style="grid-column: 2">
             <button class="add" onclick="addColumnAndTask()">+ Add task type</button>
         </div>
     </div>
 
     <div id="context-menu">
         <div class="item" id="removeTask">Delete</div>
-        <!--<div class="item" id="changeColor">/Change color/</div>
-        <div class="item" id="changeTaskTags">/Tags/</div>-->
+        <div class="item" id="changeColor">Change color <input type="color" id="changeTaskColor"></input></div>
     </div>
     <script src='app.js'></script>
 </div>

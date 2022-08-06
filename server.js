@@ -10,8 +10,8 @@ const JSONParser = express.json({ type: 'application/json' })
 
 mongoose.connect(
   //atlas mongodb
-  'mongodb+srv://user12345:12345@cluster1.mgmwwie.mongodb.net',
-  //'mongodb://localhost:27017/tasksdb',
+  //'mongodb+srv://user12345:12345@cluster1.mgmwwie.mongodb.net',
+  'mongodb://localhost:27017/tasksdb',
   {
     useUnifiedTopology: true,
     useNewUrlParser: true,
@@ -30,12 +30,13 @@ const tasksScheme = new Schema({
   column: Number,
   row: Number,
   text: String,
+  color: { type: String, default: 'white' },
 })
 const Task = mongoose.model('Task', tasksScheme)
 
 const tasksTypeScheme = new Schema({
   column: Number,
-  text: String,
+  text: { type: String, default: 'Enter task type' },
 })
 const TaskType = mongoose.model('TaskType', tasksTypeScheme)
 
@@ -70,6 +71,7 @@ expressServer.put('/tasks', JSONParser, async (request, response) => {
     column: request.body.column,
     row: request.body.row,
     text: request.body.text,
+    color: request.body.color,
   })
     .then(() => {
       console.log(`Updated task "${request.headers.id}"`)
