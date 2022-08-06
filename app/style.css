@@ -10,6 +10,19 @@ body {
   min-width: 100%;
 }
 
+#darkenLayer {
+  background-color: black;
+  margin: 0;
+  padding: 0;
+  min-height: 100%;
+  min-width: 100%;
+  position: absolute;
+  z-index: 2;
+  opacity: 0.4;
+  display: none;
+  z-index: 1;
+}
+
 #task-grid {
   display: inline-grid;
   column-gap: 25px;
@@ -34,9 +47,10 @@ task-field {
 }
 
 /*would be simpler to dim stuff, but doesn't work properly for some reason*/
-/*task-field:focus-within {
-  box-shadow: 0 0 0 max(100vh, 100vw) rgba(0, 0, 0, .4)
-}*/
+task-field:focus-within {
+  /*box-shadow: 0 0 0 max(100vh, 100vw) rgba(0, 0, 0, .4);*/
+  filter: drop-shadow(0 0 0 max(100vh, 100vw) rgba(0, 0, 0, .4));
+}
 
 button.add {
   background: transparent;

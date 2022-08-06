@@ -5,6 +5,18 @@ var taskGrid = document.querySelector('#task-grid')
 var columns = document.querySelector('#task-grid').children
 var contextMenu = document.querySelector('#context-menu')
 var myTasksLogo = document.querySelector('#myTasksLogo')
+var darkenLayer = document.querySelector('#darkenLayer')
+const rgba2hex = (rgba) =>
+  `#${rgba
+    .match(/^rgba?\((\d+),\s*(\d+),\s*(\d+)(?:,\s*(\d+\.{0,1}\d*))?\)$/)
+    .slice(1)
+    .map((n, i) =>
+      (i === 3 ? Math.round(parseFloat(n) * 255) : parseFloat(n))
+        .toString(16)
+        .padStart(2, '0')
+        .replace('NaN', '')
+    )
+    .join('')}`
 
 function column(col) {
   return columns[col - 1]
@@ -25,7 +37,6 @@ class TaskField extends HTMLElement {
     super()
     let textarea = document.createElement('textarea')
     textarea.spellcheck = false
-    var tasksColors = new Map()
 
     textarea.oninput = () => {
       textarea.style.height = '1px'
@@ -33,6 +44,9 @@ class TaskField extends HTMLElement {
     }
 
     textarea.onfocus = async () => {
+      darkenLayer.style.display = 'block'
+      this.style.zIndex = '2'
+
       // for new tasks
       if (!this.id) {
         await fetch('/tasks', {
@@ -46,43 +60,19 @@ class TaskField extends HTMLElement {
           })
       }
 
-      // darkening stuff + restoring colors
-      document.querySelectorAll('task-field').forEach((el) => {
-        if (el.style.backgroundColor)
-          tasksColors.set(el.id, el.style.backgroundColor)
-        else tasksColors.set(el.id, 'white')
-        el.style.backgroundColor = '#999999'
-        el.lastChild.style.backgroundColor = '#999999'
-      })
-      this.style.backgroundColor = 'white'
-      this.lastChild.style.backgroundColor = 'white'
-      document.querySelectorAll('input').forEach((el) => {
-        el.style.color = '#999999'
-      })
-      document.querySelectorAll('button').forEach((el) => {
-        el.style.color = '#999999'
-      })
-      document.body.style.backgroundColor = '#4C2059'
-      myTasksLogo.style.color = '#999999'
       contextMenu.style.display = 'block'
       contextMenu.taskId = this.id
       contextMenu.style.left = `${this.getBoundingClientRect().x + 217}px`
       contextMenu.style.top = `${this.getBoundingClientRect().y}px`
+      console.log(this.style.backgroundColor)
+      document.querySelector('#changeColorInput').value = rgba2hex(
+        this.style.backgroundColor
+      )
     }
 
     textarea.onblur = async () => {
-      document.querySelectorAll('task-field').forEach((el) => {
-        el.style.backgroundColor = tasksColors.get(el.id)
-        el.lastChild.style.backgroundColor = tasksColors.get(el.id)
-      })
-      document.querySelectorAll('input').forEach((el) => {
-        el.style.color = 'white'
-      })
-      document.querySelectorAll('button').forEach((el) => {
-        el.style.color = 'white'
-      })
-      document.body.style.backgroundColor = '#7f3594'
-      myTasksLogo.style.color = 'white'
+      darkenLayer.style.display = 'none'
+      this.style.zIndex = ''
 
       let taskInfo = {
         column: this.className.match(/\d+/)[0],
@@ -135,6 +125,7 @@ function addTask(column, fromSaved) {
   let columnLastElement = columnArr[columnArr.length - 1]
   let newTask = `<task-field class="${column}"></task-field>`
   columnLastElement.insertAdjacentHTML('beforebegin', newTask)
+  columnArr[columnArr.length - 2].style.backgroundColor = '#ffffff'
   if (!fromSaved) {
     columnArr[columnArr.length - 2].lastChild.focus()
   }
@@ -334,14 +325,14 @@ document.body.addEventListener('click', (event) => {
   }
 })
 
-changeTaskColor.oninput = async () => {
+changeColorInput.oninput = async () => {
   let taskToColorize = document.getElementById(contextMenu.taskId)
-  taskToColorize.style.backgroundColor = changeTaskColor.value
-  taskToColorize.lastChild.style.backgroundColor = changeTaskColor.value
+  taskToColorize.style.backgroundColor = changeColorInput.value
+  taskToColorize.lastChild.style.backgroundColor = changeColorInput.value
   await fetch('/tasks', {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json', id: contextMenu.taskId },
-    body: JSON.stringify({ color: changeTaskColor.value }),
+    body: JSON.stringify({ color: changeColorInput.value }),
   })
     .then((response) => response.text())
     .then((responseText) => console.log(responseText))
