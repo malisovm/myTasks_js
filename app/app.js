@@ -49,7 +49,6 @@ class TaskField extends HTMLElement {
     let textarea = document.createElement('textarea')
     textarea.spellcheck = false
     this.draggable = 'true'
-    this.droppable = 'true'
 
     textarea.oninput = () => {
       textarea.style.height = '1px'
@@ -80,15 +79,18 @@ class TaskField extends HTMLElement {
       contextMenu.taskId = this.id
       contextMenu.style.left = `${this.getBoundingClientRect().x + 217}px`
       contextMenu.style.top = `${this.getBoundingClientRect().y}px`
-      document.querySelector('#changeColorInput').value = rgba2hex(
-        this.style.backgroundColor
-      )
+      if (this.style.backgroundColor) {
+        document.querySelector('#changeColorInput').value = rgba2hex(
+          this.style.backgroundColor
+        )
+      } else {
+        document.querySelector('#changeColorInput').value = '#ffffff'
+      }
     }
 
     textarea.onblur = async () => {
       darkenLayer.style.display = 'none'
       this.style.zIndex = ''
-      this.text = textarea.value
 
       if (this.id) {
         await fetch('/tasks', {
@@ -139,7 +141,6 @@ function addTask(column, fromSaved = false) {
   let columnLastElement = columnArr[columnArr.length - 1]
   let newTask = '<task-field></task-field>'
   columnLastElement.insertAdjacentHTML('beforebegin', newTask)
-  columnArr[columnArr.length - 2].style.backgroundColor = '#ffffff'
   if (!fromSaved) {
     columnArr[columnArr.length - 2].lastChild.focus() // this triggers adding to db
   }
@@ -359,7 +360,7 @@ const moveTask = (sourceElem, targetElem) => {
   let targetCol = getColNum(targetElem)
   let sourceRow = getRowNum(sourceElem)
   let targetRow = getRowNum(targetElem)
-   if (sourceCol === targetCol) {
+  if (sourceCol === targetCol) {
     if (sourceRow > targetRow) {
       insertBefore(sourceElem, targetElem)
     } else if (sourceRow < targetRow) {
@@ -404,6 +405,5 @@ document.addEventListener('drop', (event) => {
     event.target.className === 'add'
   ) {
     moveTask(dragged, event.target)
-    if (event.target.className === 'add') console.log('mew')
   }
 })
