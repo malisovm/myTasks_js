@@ -10,8 +10,8 @@ const JSONParser = express.json({ type: 'application/json' })
 
 mongoose.connect(
   //atlas mongodb
-  'mongodb+srv://user12345:12345@cluster1.mgmwwie.mongodb.net',
-  //'mongodb://localhost:27017/tasksdb',
+  //'mongodb+srv://user12345:12345@cluster1.mgmwwie.mongodb.net',
+  'mongodb://localhost:27017/tasksdb',
   {
     useUnifiedTopology: true,
     useNewUrlParser: true,
@@ -27,9 +27,9 @@ mongoose.connect(
 )
 
 const tasksScheme = new Schema({
-  column: Number,
-  row: Number,
-  text: String,
+  column: { type: Number, required: true },
+  row: { type: Number, required: true },
+  text: { type: String, default: '' },
   color: { type: String, default: '#ffffff' },
 })
 const Task = mongoose.model('Task', tasksScheme)

@@ -1,5 +1,3 @@
-//auxiliary stuff to simplify development
-
 HTMLCollection.prototype.forEach = Array.prototype.forEach
 var taskGrid = document.querySelector('#task-grid')
 var columns = document.querySelector('#task-grid').children
@@ -37,6 +35,7 @@ class TaskField extends HTMLElement {
     super()
     let textarea = document.createElement('textarea')
     textarea.spellcheck = false
+    this.draggable = 'true'
 
     textarea.oninput = () => {
       textarea.style.height = '1px'
@@ -47,11 +46,14 @@ class TaskField extends HTMLElement {
       darkenLayer.style.display = 'block'
       this.style.zIndex = '2'
 
-      // for new tasks
       if (!this.id) {
         await fetch('/tasks', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            column: this.parentElement.id.match(/\d+/)[0],
+            row: [...this.parentElement.children].indexOf(this),
+          }),
         })
           .then((response) => response.text())
           .then((responseText) => {
@@ -64,7 +66,6 @@ class TaskField extends HTMLElement {
       contextMenu.taskId = this.id
       contextMenu.style.left = `${this.getBoundingClientRect().x + 217}px`
       contextMenu.style.top = `${this.getBoundingClientRect().y}px`
-      console.log(this.style.backgroundColor)
       document.querySelector('#changeColorInput').value = rgba2hex(
         this.style.backgroundColor
       )
@@ -74,24 +75,18 @@ class TaskField extends HTMLElement {
       darkenLayer.style.display = 'none'
       this.style.zIndex = ''
 
-      let taskInfo = {
-        column: this.className.match(/\d+/)[0],
-        row: [...this.parentElement.children].indexOf(this),
-        text: textarea.value,
-      }
-
-      // for tasks with existing id in mongodb
       if (this.id) {
         await fetch('/tasks', {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json', id: this.id },
-          body: JSON.stringify(taskInfo),
+          body: JSON.stringify({ text: textarea.value }),
         })
           .then((response) => response.text())
           .then((responseText) => console.log(responseText))
       }
     }
     this.appendChild(textarea)
+    textarea.style.backgroundColor = this.style.backgroundColor
   }
 }
 customElements.define('task-field', TaskField)
@@ -105,7 +100,6 @@ class TaskType extends HTMLInputElement {
         text: this.value,
       }
 
-      // for tasks with existing id in mongodb
       if (this.id) {
         await fetch('/tasktypes', {
           method: 'PUT',
@@ -120,14 +114,14 @@ class TaskType extends HTMLInputElement {
 }
 customElements.define('task-type', TaskType, { extends: 'input' })
 
-function addTask(column, fromSaved) {
+function addTask(column, fromSaved = false) {
   let columnArr = document.querySelector(`#${column}`).children
   let columnLastElement = columnArr[columnArr.length - 1]
-  let newTask = `<task-field class="${column}"></task-field>`
+  let newTask = '<task-field></task-field>'
   columnLastElement.insertAdjacentHTML('beforebegin', newTask)
   columnArr[columnArr.length - 2].style.backgroundColor = '#ffffff'
   if (!fromSaved) {
-    columnArr[columnArr.length - 2].lastChild.focus()
+    columnArr[columnArr.length - 2].lastChild.focus() // this triggers adding to db
   }
 }
 
@@ -234,11 +228,8 @@ const removeColumn = async (event) => {
         // changing tasks
         col.children.forEach(async (taskToUpdateColumn) => {
           let PUTpath
-          if (taskToUpdateColumn.nodeName === 'TASK-FIELD') {
-            taskToUpdateColumn.className = `column${colNum}`
-            PUTpath = '/tasks'
-          } else if (taskToUpdateColumn == col.children[0])
-            PUTpath = '/tasktypes'
+          if (taskToUpdateColumn.nodeName === 'TASK-FIELD') PUTpath = '/tasks'
+          else if (taskToUpdateColumn == col.children[0]) PUTpath = '/tasktypes'
           await fetch(PUTpath, {
             method: 'PUT',
             headers: {
@@ -255,6 +246,15 @@ const removeColumn = async (event) => {
 document.body.addEventListener('contextmenu', removeColumn, true) // contextmenu == rightclick or long tap on mobile
 
 window.onload = async () => {
+  let savedTaskTypes = await fetch('/tasktypes', {
+    method: 'GET',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+  })
+    .then((response) => response.text())
+    .then((responseText) => JSON.parse(responseText))
+
   let savedTasks = await fetch('/tasks', {
     method: 'GET',
     headers: {
@@ -264,41 +264,35 @@ window.onload = async () => {
     .then((response) => response.text())
     .then((responseText) => JSON.parse(responseText))
 
-  if (savedTasks.length !== 0) {
-    console.log('Server: found saved tasks\n', savedTasks)
-    let savedColumns = []
-    savedTasks.forEach((savedTask) => {
-      savedColumns.push(savedTask.column)
-    })
-    let numOfSavedCols = Math.max(...savedColumns)
-    for (let i = 0; i < numOfSavedCols; i++) {
+  if (savedTaskTypes.length !== 0) {
+    console.log('Server: found saved task types\n', savedTaskTypes)
+    for (let i = 0; i < savedTaskTypes.length; i++) {
       addColumn(true)
     }
-    savedTasks.forEach((savedTask) => {
-      addTask(`column${savedTask.column}`, true)
-      let thisTask = taskField(savedTask.column, savedTask.row)
-      thisTask.id = savedTask._id
-      thisTask.lastChild.value = savedTask.text
-      thisTask.style.backgroundColor = savedTask.color
-      thisTask.lastChild.style.backgroundColor = savedTask.color
-      thisTask.lastChild.style.height = '1px'
-      thisTask.lastChild.style.height = thisTask.lastChild.scrollHeight + 'px'
-    })
 
-    let savedTaskTypes = await fetch('/tasktypes', {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    })
-      .then((response) => response.text())
-      .then((responseText) => JSON.parse(responseText))
-    console.log('Server: found saved task types\n', savedTaskTypes)
     savedTaskTypes.forEach((savedTaskType) => {
       column(savedTaskType.column).children[0].id = savedTaskType._id
       column(savedTaskType.column).children[0].value = savedTaskType.text
     })
-  } else if (savedTasks.length === 0) {
+
+    if (savedTasks.length !== 0) {
+      console.log('Server: found saved tasks\n', savedTasks)
+      savedTasks.forEach((savedTask) => {
+        addTask(`column${savedTask.column}`, true) // a separate forEach because savedTasks is out-of-order row-wise, so creating black task-fields first, then filling them
+      })
+      savedTasks.forEach((savedTask) => {
+        let thisTask = taskField(savedTask.column, savedTask.row)
+        thisTask.id = savedTask._id
+        thisTask.lastChild.value = savedTask.text
+        thisTask.style.backgroundColor = savedTask.color
+        thisTask.lastChild.style.backgroundColor = savedTask.color
+        thisTask.lastChild.style.height = '1px'
+        thisTask.lastChild.style.height = thisTask.lastChild.scrollHeight + 'px'
+      })
+    } else if (savedTasks.length === 0) {
+      addTask('column1')
+    }
+  } else if (savedTaskTypes.length === 0) {
     addColumnAndTask()
     taskField(1, 1).lastChild.focus()
   }
@@ -336,4 +330,46 @@ changeColorInput.oninput = async () => {
   })
     .then((response) => response.text())
     .then((responseText) => console.log(responseText))
+}
+
+const moveTask = (sourceCol, sourceRow, targetCol, targetRow) => {
+  let taskToMove = taskField(sourceCol, sourceRow)
+  let targetPosition
+  if (taskField(targetCol, targetRow)) {
+    targetPosition = taskField(targetCol, targetRow)
+    console.log(targetPosition)
+  } else targetPosition = column(targetCol).children[1]
+  targetPosition.insertAdjacentHTML('beforebegin', taskToMove.outerHTML)
+  taskField(targetCol, targetRow).lastChild.value = taskToMove.lastChild.value
+  taskField(targetCol, targetRow).children[0].remove()
+  taskToMove.remove()
+  column(sourceCol).children.forEach((task) => {
+    if (task.nodeName === 'TASK-FIELD') {
+      console.log('source column task:', task)
+      fetch('/tasks', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', id: task.id },
+        body: JSON.stringify({
+          row: [...task.parentElement.children].indexOf(task),
+        }),
+      })
+        .then((response) => response.text())
+        .then((responseText) => console.log(responseText))
+    }
+  })
+  column(targetCol).children.forEach((task) => {
+    if (task.nodeName === 'TASK-FIELD') {
+      console.log('target column task:', task)
+      fetch('/tasks', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', id: task.id },
+        body: JSON.stringify({
+          column: targetCol,
+          row: [...task.parentElement.children].indexOf(task),
+        }),
+      })
+        .then((response) => response.text())
+        .then((responseText) => console.log(responseText))
+    }
+  })
 }
