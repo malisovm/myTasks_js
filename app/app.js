@@ -4,6 +4,7 @@ var columns = document.querySelector('#task-grid').children
 var contextMenu = document.querySelector('#context-menu')
 var myTasksLogo = document.querySelector('#myTasksLogo')
 var darkenLayer = document.querySelector('#darkenLayer')
+var dragged
 const rgba2hex = (rgba) =>
   `#${rgba
     .match(/^rgba?\((\d+),\s*(\d+),\s*(\d+)(?:,\s*(\d+\.{0,1}\d*))?\)$/)
@@ -25,6 +26,12 @@ function taskField(col, task) {
 function taskText(col, task) {
   return columns[col - 1].children[task].children[0].value
 }
+function getCol(elem) {
+  return parseInt(elem.parentElement.id.match(/\d+/)[0])
+}
+function getRow(elem) {
+  return [...elem.parentElement.children].indexOf(elem)
+}
 
 /*a taskField as a custom stylable html element that contains a <textarea> that interacts with mongodb on backend
 a taskType is the header at the top of each column in the UI that can be renamed by the user
@@ -36,6 +43,7 @@ class TaskField extends HTMLElement {
     let textarea = document.createElement('textarea')
     textarea.spellcheck = false
     this.draggable = 'true'
+    this.droppable = 'true'
 
     textarea.oninput = () => {
       textarea.style.height = '1px'
@@ -51,8 +59,8 @@ class TaskField extends HTMLElement {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            column: this.parentElement.id.match(/\d+/)[0],
-            row: [...this.parentElement.children].indexOf(this),
+            column: getCol(this),
+            row: getRow(this),
           }),
         })
           .then((response) => response.text())
@@ -87,6 +95,10 @@ class TaskField extends HTMLElement {
     }
     this.appendChild(textarea)
     textarea.style.backgroundColor = this.style.backgroundColor
+
+    this.ondrop = async () => {
+      moveTask
+    }
   }
 }
 customElements.define('task-field', TaskField)
@@ -94,12 +106,12 @@ customElements.define('task-field', TaskField)
 class TaskType extends HTMLInputElement {
   constructor() {
     super()
+    this.draggable = 'true'
     this.onblur = async () => {
       let taskTypeInfo = {
-        column: this.parentElement.id.match(/\d+/)[0],
+        column: getCol(this),
         text: this.value,
       }
-
       if (this.id) {
         await fetch('/tasktypes', {
           method: 'PUT',
@@ -137,7 +149,7 @@ async function addColumn(fromSaved) {
   <div class="column" id="column${columns.length + 1}" style="grid-column: ${
     columns.length + 1
   }">
-  <button class="add" onclick="addColumnAndTask()">+ Add task type</button>
+  <button class="add" onclick="addColumnAndTask()" droppable="true">+ Add task type</button>
   </div>`
   let lastColumn = columns[columns.length - 1]
   lastColumn.insertAdjacentHTML('beforebegin', newColumn)
@@ -191,6 +203,7 @@ removeTask.onclick = async (event) => {
           id: taskToUpdateRow.id,
         },
         body: JSON.stringify({
+          //row: getRow(taskToUpdateRow)
           row: [...currentCol.children].indexOf(taskToUpdateRow),
         }),
       })
@@ -214,6 +227,7 @@ const removeColumn = async (event) => {
         }
       })
     document.querySelector(`#${event.path[1].id}`).remove() // removing the actual column in UI
+
     // changing the html parameters of the remaining columns to fit the new order:
     columns.forEach((col) => {
       let colNum = [...columns].indexOf(col) + 1
@@ -337,39 +351,46 @@ const moveTask = (sourceCol, sourceRow, targetCol, targetRow) => {
   let targetPosition
   if (taskField(targetCol, targetRow)) {
     targetPosition = taskField(targetCol, targetRow)
-    console.log(targetPosition)
   } else targetPosition = column(targetCol).children[1]
   targetPosition.insertAdjacentHTML('beforebegin', taskToMove.outerHTML)
   taskField(targetCol, targetRow).lastChild.value = taskToMove.lastChild.value
   taskField(targetCol, targetRow).children[0].remove()
   taskToMove.remove()
-  column(sourceCol).children.forEach((task) => {
-    if (task.nodeName === 'TASK-FIELD') {
-      console.log('source column task:', task)
-      fetch('/tasks', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json', id: task.id },
-        body: JSON.stringify({
-          row: [...task.parentElement.children].indexOf(task),
-        }),
-      })
-        .then((response) => response.text())
-        .then((responseText) => console.log(responseText))
-    }
-  })
-  column(targetCol).children.forEach((task) => {
-    if (task.nodeName === 'TASK-FIELD') {
-      console.log('target column task:', task)
-      fetch('/tasks', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json', id: task.id },
-        body: JSON.stringify({
-          column: targetCol,
-          row: [...task.parentElement.children].indexOf(task),
-        }),
-      })
-        .then((response) => response.text())
-        .then((responseText) => console.log(responseText))
-    }
-  })
+  function reorderColumn(col) {
+    column(col).children.forEach((task) => {
+      if (task.nodeName === 'TASK-FIELD') {
+        fetch('/tasks', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json', id: task.id },
+          body: JSON.stringify({
+            column: col,
+            row: getRow(task),
+          }),
+        })
+          .then((response) => response.text())
+          .then((responseText) => console.log(responseText))
+      }
+    })
+  }
+  if (sourceCol !== targetCol) {
+    reorderColumn(sourceCol)
+    reorderColumn(targetCol)
+  } else reorderColumn(sourceCol)
 }
+
+document.addEventListener('dragstart', (event) => {
+  dragged = event.target
+})
+document.addEventListener('dragover', (event) => {
+  event.preventDefault()
+})
+document.addEventListener('drop', (event) => {
+  event.preventDefault()
+  if (event.target.nodeName === 'TASK-FIELD') {
+    draggedTaskCol = getCol(dragged)
+    draggedTaskRow = getRow(dragged)
+    targetCol = getCol(event.target)
+    targetRow = getRow(event.target)
+    moveTask(draggedTaskCol, draggedTaskRow, targetCol, targetRow)
+  }
+})
