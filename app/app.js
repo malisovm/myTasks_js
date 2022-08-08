@@ -5,6 +5,12 @@ var contextMenu = document.querySelector('#context-menu')
 var myTasksLogo = document.querySelector('#myTasksLogo')
 var darkenLayer = document.querySelector('#darkenLayer')
 var dragged
+function insertAfter(newNode, existingNode) {
+  existingNode.parentNode.insertBefore(newNode, existingNode.nextSibling)
+}
+function insertBefore(newNode, existingNode) {
+  existingNode.parentNode.insertBefore(newNode, existingNode)
+}
 const rgba2hex = (rgba) =>
   `#${rgba
     .match(/^rgba?\((\d+),\s*(\d+),\s*(\d+)(?:,\s*(\d+\.{0,1}\d*))?\)$/)
@@ -26,10 +32,10 @@ function taskField(col, task) {
 function taskText(col, task) {
   return columns[col - 1].children[task].children[0].value
 }
-function getCol(elem) {
+function getColNum(elem) {
   return parseInt(elem.parentElement.id.match(/\d+/)[0])
 }
-function getRow(elem) {
+function getRowNum(elem) {
   return [...elem.parentElement.children].indexOf(elem)
 }
 
@@ -59,8 +65,8 @@ class TaskField extends HTMLElement {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            column: getCol(this),
-            row: getRow(this),
+            column: getColNum(this),
+            row: getRowNum(this),
           }),
         })
           .then((response) => response.text())
@@ -82,6 +88,7 @@ class TaskField extends HTMLElement {
     textarea.onblur = async () => {
       darkenLayer.style.display = 'none'
       this.style.zIndex = ''
+      this.text = textarea.value
 
       if (this.id) {
         await fetch('/tasks', {
@@ -106,10 +113,11 @@ customElements.define('task-field', TaskField)
 class TaskType extends HTMLInputElement {
   constructor() {
     super()
+    this.text = ''
     this.draggable = 'true'
     this.onblur = async () => {
       let taskTypeInfo = {
-        column: getCol(this),
+        column: getColNum(this),
         text: this.value,
       }
       if (this.id) {
@@ -203,7 +211,7 @@ removeTask.onclick = async (event) => {
           id: taskToUpdateRow.id,
         },
         body: JSON.stringify({
-          //row: getRow(taskToUpdateRow)
+          //row: getRowNum(taskToUpdateRow)
           row: [...currentCol.children].indexOf(taskToUpdateRow),
         }),
       })
@@ -346,17 +354,22 @@ changeColorInput.oninput = async () => {
     .then((responseText) => console.log(responseText))
 }
 
-const moveTask = (sourceCol, sourceRow, targetCol, targetRow) => {
-  let taskToMove = taskField(sourceCol, sourceRow)
-  let targetPosition
-  if (taskField(targetCol, targetRow)) {
-    targetPosition = taskField(targetCol, targetRow)
-  } else targetPosition = column(targetCol).children[1]
-  targetPosition.insertAdjacentHTML('beforebegin', taskToMove.outerHTML)
-  taskField(targetCol, targetRow).lastChild.value = taskToMove.lastChild.value
-  taskField(targetCol, targetRow).children[0].remove()
-  taskToMove.remove()
-  function reorderColumn(col) {
+const moveTask = (sourceElem, targetElem) => {
+  let sourceCol = getColNum(sourceElem)
+  let targetCol = getColNum(targetElem)
+  let sourceRow = getRowNum(sourceElem)
+  let targetRow = getRowNum(targetElem)
+   if (sourceCol === targetCol) {
+    if (sourceRow > targetRow) {
+      insertBefore(sourceElem, targetElem)
+    } else if (sourceRow < targetRow) {
+      insertAfter(sourceElem, targetElem)
+    }
+  } else if (sourceCol !== targetCol) {
+    insertBefore(sourceElem, targetElem)
+  }
+
+  function updateTasksInDb(col) {
     column(col).children.forEach((task) => {
       if (task.nodeName === 'TASK-FIELD') {
         fetch('/tasks', {
@@ -364,7 +377,7 @@ const moveTask = (sourceCol, sourceRow, targetCol, targetRow) => {
           headers: { 'Content-Type': 'application/json', id: task.id },
           body: JSON.stringify({
             column: col,
-            row: getRow(task),
+            row: getRowNum(task),
           }),
         })
           .then((response) => response.text())
@@ -373,9 +386,9 @@ const moveTask = (sourceCol, sourceRow, targetCol, targetRow) => {
     })
   }
   if (sourceCol !== targetCol) {
-    reorderColumn(sourceCol)
-    reorderColumn(targetCol)
-  } else reorderColumn(sourceCol)
+    updateTasksInDb(sourceCol)
+    updateTasksInDb(targetCol)
+  } else updateTasksInDb(sourceCol)
 }
 
 document.addEventListener('dragstart', (event) => {
@@ -386,11 +399,11 @@ document.addEventListener('dragover', (event) => {
 })
 document.addEventListener('drop', (event) => {
   event.preventDefault()
-  if (event.target.nodeName === 'TASK-FIELD') {
-    draggedTaskCol = getCol(dragged)
-    draggedTaskRow = getRow(dragged)
-    targetCol = getCol(event.target)
-    targetRow = getRow(event.target)
-    moveTask(draggedTaskCol, draggedTaskRow, targetCol, targetRow)
+  if (
+    event.target.nodeName === 'TASK-FIELD' ||
+    event.target.className === 'add'
+  ) {
+    moveTask(dragged, event.target)
+    if (event.target.className === 'add') console.log('mew')
   }
 })
