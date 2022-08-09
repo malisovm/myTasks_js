@@ -129,21 +129,18 @@ customElements.define('task-field', TaskField)
 class TaskType extends HTMLInputElement {
   constructor() {
     super()
-    this.text = ''
-    this.draggable = 'true'
+    this.placeholder = 'Enter task type'
     this.onblur = async () => {
-      let taskTypeInfo = {
-        column: getColNum(this),
-        text: this.value,
-      }
-      if (this.id) {
-        await fetch('/tasktypes', {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json', id: this.id },
-          body: JSON.stringify(taskTypeInfo),
-        })
-          .then((response) => response.text())
-          .then((responseText) => console.log(responseText))
+      if (this.value !== '') {
+        if (this.id) {
+          await fetch('/tasktypes', {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json', id: this.id },
+            body: JSON.stringify({ column: getColNum(this), text: this.value }),
+          })
+            .then((response) => response.text())
+            .then((responseText) => console.log(responseText))
+        }
       }
     }
   }
@@ -355,7 +352,6 @@ document.body.addEventListener('click', (event) => {
 
 changeColorInput.oninput = async () => {
   let taskToColorize = document.getElementById(contextMenu.taskId)
-  console.log(taskToColorize)
   taskToColorize.style.backgroundColor = changeColorInput.value
   await fetch('/tasks', {
     method: 'PUT',
@@ -422,3 +418,9 @@ document.addEventListener('drop', (event) => {
     moveTask(dragged, event.target.parentElement)
   }
 })
+
+function swapColumns(col1, col2) {
+  let tmp = col2.outerHTML
+  col2.outerHTML = col1.outerHTML
+  col1.outerHTML = tmp
+}

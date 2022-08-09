@@ -45,6 +45,7 @@ task-field {
   border-radius: 5px;
   width: 200px;
   box-shadow: 3px 3px 4px #444444;
+  cursor: pointer;
 }
 
 task-field:focus-within {
