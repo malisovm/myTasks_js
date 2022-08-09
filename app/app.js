@@ -29,9 +29,6 @@ function column(col) {
 function taskField(col, task) {
   return columns[col - 1].children[task]
 }
-function taskText(col, task) {
-  return columns[col - 1].children[task].children[0].value
-}
 function getColNum(elem) {
   return parseInt(elem.parentElement.id.match(/\d+/)[0])
 }
@@ -46,67 +43,84 @@ a taskType is the header at the top of each column in the UI that can be renamed
 class TaskField extends HTMLElement {
   constructor() {
     super()
-    let textarea = document.createElement('textarea')
-    textarea.spellcheck = false
+
     this.draggable = 'true'
-
-    textarea.oninput = () => {
-      textarea.style.height = '1px'
-      textarea.style.height = textarea.scrollHeight + 'px'
-    }
-
-    textarea.onfocus = async () => {
-      darkenLayer.style.display = 'block'
-      this.style.zIndex = '2'
-
-      if (!this.id) {
-        await fetch('/tasks', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            column: getColNum(this),
-            row: getRowNum(this),
-          }),
-        })
-          .then((response) => response.text())
-          .then((responseText) => {
-            this.id = responseText.split('"')[1]
-            console.log(responseText)
-          })
-      }
-
-      contextMenu.style.display = 'block'
-      contextMenu.taskId = this.id
-      contextMenu.style.left = `${this.getBoundingClientRect().x + 217}px`
-      contextMenu.style.top = `${this.getBoundingClientRect().y}px`
-      if (this.style.backgroundColor) {
-        document.querySelector('#changeColorInput').value = rgba2hex(
-          this.style.backgroundColor
-        )
-      } else {
-        document.querySelector('#changeColorInput').value = '#ffffff'
-      }
-    }
-
-    textarea.onblur = async () => {
-      darkenLayer.style.display = 'none'
-      this.style.zIndex = ''
-
-      if (this.id) {
-        await fetch('/tasks', {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json', id: this.id },
-          body: JSON.stringify({ text: textarea.value }),
-        })
-          .then((response) => response.text())
-          .then((responseText) => console.log(responseText))
-      }
-    }
-    this.appendChild(textarea)
-    textarea.style.backgroundColor = this.style.backgroundColor
-
+    this.droppable = 'true'
     this.ondrop = async () => {
       moveTask
+    }
+
+    if (this.style.backgroundColor) {
+      document.querySelector('#changeColorInput').value = rgba2hex(
+        this.style.backgroundColor
+      )
+    } else {
+      document.querySelector('#changeColorInput').value = '#ffffff'
+    }
+
+    let textdiv = document.createElement('div')
+    textdiv.droppable = 'true'
+    let textarea
+    this.appendChild(textdiv)
+    textdiv.style.backgroundColor = this.style.backgroundColor
+    textdiv.classList.add('textdiv')
+    textdiv.onclick = () => {
+      textarea = document.createElement('textarea')
+      textarea.spellcheck = false
+      textarea.value = textdiv.innerHTML
+      textdiv.replaceWith(textarea)
+
+      textarea.oninput = () => {
+        textarea.style.height = '1px'
+        textarea.style.height = textarea.scrollHeight + 'px'
+      }
+
+      textarea.onfocus = async () => {
+        textarea.style.height = textarea.scrollHeight + 'px'
+        darkenLayer.style.display = 'block'
+        this.style.zIndex = '2'
+        textarea.style.backgroundColor = this.style.backgroundColor
+        contextMenu.style.display = 'block'
+        contextMenu.taskId = this.id
+        contextMenu.style.left = `${this.getBoundingClientRect().x + 217}px`
+        contextMenu.style.top = `${this.getBoundingClientRect().y}px`
+
+        if (!this.id) {
+          await fetch('/tasks', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              column: getColNum(this),
+              row: getRowNum(this),
+            }),
+          })
+            .then((response) => response.text())
+            .then((responseText) => {
+              this.id = responseText.split('"')[1]
+              console.log(responseText)
+            })
+        }
+      }
+
+      textarea.onblur = async () => {
+        darkenLayer.style.display = 'none'
+        this.style.zIndex = ''
+        if (this.id) {
+          await fetch('/tasks', {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json', id: this.id },
+            body: JSON.stringify({ text: textarea.value }),
+          })
+            .then((response) => response.text())
+            .then((responseText) => console.log(responseText))
+        }
+        editEnd()
+      }
+      textarea.focus()
+    }
+    const editEnd = () => {
+      textdiv.innerHTML = textarea.value
+      textarea.replaceWith(textdiv)
     }
   }
 }
@@ -142,7 +156,7 @@ function addTask(column, fromSaved = false) {
   let newTask = '<task-field></task-field>'
   columnLastElement.insertAdjacentHTML('beforebegin', newTask)
   if (!fromSaved) {
-    columnArr[columnArr.length - 2].lastChild.focus() // this triggers adding to db
+    columnArr[columnArr.length - 2].lastChild.click() // this triggers adding to db
   }
 }
 
@@ -192,7 +206,7 @@ const removeFromDB = async (path, elementId) => {
     .then((responseText) => console.log(responseText))
 }
 
-const removeTask = document.querySelector('#removeTask')
+const removeTask = document.querySelector('#removeTask') //button in context-menu
 removeTask.onclick = async (event) => {
   let taskToRemove = document.getElementById(contextMenu.taskId)
   removeFromDB('/tasks', taskToRemove.id)
@@ -212,7 +226,6 @@ removeTask.onclick = async (event) => {
           id: taskToUpdateRow.id,
         },
         body: JSON.stringify({
-          //row: getRowNum(taskToUpdateRow)
           row: [...currentCol.children].indexOf(taskToUpdateRow),
         }),
       })
@@ -301,23 +314,20 @@ window.onload = async () => {
     if (savedTasks.length !== 0) {
       console.log('Server: found saved tasks\n', savedTasks)
       savedTasks.forEach((savedTask) => {
-        addTask(`column${savedTask.column}`, true) // a separate forEach because savedTasks is out-of-order row-wise, so creating black task-fields first, then filling them
+        addTask(`column${savedTask.column}`, true) // savedTasks is out-of-order row-wise, so creating black task-fields first, then filling them in a separate forEach
       })
       savedTasks.forEach((savedTask) => {
         let thisTask = taskField(savedTask.column, savedTask.row)
         thisTask.id = savedTask._id
-        thisTask.lastChild.value = savedTask.text
+        thisTask.lastChild.innerHTML = savedTask.text
         thisTask.style.backgroundColor = savedTask.color
-        thisTask.lastChild.style.backgroundColor = savedTask.color
-        thisTask.lastChild.style.height = '1px'
-        thisTask.lastChild.style.height = thisTask.lastChild.scrollHeight + 'px'
       })
     } else if (savedTasks.length === 0) {
       addTask('column1')
     }
   } else if (savedTaskTypes.length === 0) {
     addColumnAndTask()
-    taskField(1, 1).lastChild.focus()
+    taskField(1, 1).lastChild.click()
   }
 }
 
@@ -336,7 +346,8 @@ window.onload = async () => {
 document.body.addEventListener('click', (event) => {
   if (
     !event.target.classList.contains('item') &&
-    event.target.nodeName !== 'TEXTAREA'
+    !event.target.classList.contains('textdiv') &&
+    !event.target.classList.contains('add')
   ) {
     contextMenu.style.display = 'none'
   }
@@ -344,8 +355,8 @@ document.body.addEventListener('click', (event) => {
 
 changeColorInput.oninput = async () => {
   let taskToColorize = document.getElementById(contextMenu.taskId)
+  console.log(taskToColorize)
   taskToColorize.style.backgroundColor = changeColorInput.value
-  taskToColorize.lastChild.style.backgroundColor = changeColorInput.value
   await fetch('/tasks', {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json', id: contextMenu.taskId },
@@ -360,12 +371,14 @@ const moveTask = (sourceElem, targetElem) => {
   let targetCol = getColNum(targetElem)
   let sourceRow = getRowNum(sourceElem)
   let targetRow = getRowNum(targetElem)
-  if (sourceCol === targetCol) {
+  if (sourceCol === targetCol && !targetElem.classList.contains('add')) {
     if (sourceRow > targetRow) {
       insertBefore(sourceElem, targetElem)
     } else if (sourceRow < targetRow) {
       insertAfter(sourceElem, targetElem)
     }
+  } else if (sourceCol === targetCol && targetElem.classList.contains('add')) {
+    insertBefore(sourceElem, targetElem)
   } else if (sourceCol !== targetCol) {
     insertBefore(sourceElem, targetElem)
   }
@@ -402,8 +415,10 @@ document.addEventListener('drop', (event) => {
   event.preventDefault()
   if (
     event.target.nodeName === 'TASK-FIELD' ||
-    event.target.className === 'add'
+    event.target.classList.contains('add')
   ) {
     moveTask(dragged, event.target)
+  } else if (event.target.classList.contains('textdiv')) {
+    moveTask(dragged, event.target.parentElement)
   }
 })

@@ -40,16 +40,44 @@ body {
 
 task-field {
   background-color: white;
-  padding: 5px;
+  padding: 7px;
+  padding-bottom: 10px;
   border-radius: 5px;
   width: 200px;
   box-shadow: 3px 3px 4px #444444;
 }
 
-/*would be simpler to dim stuff, but doesn't work properly for some reason*/
 task-field:focus-within {
-  /*box-shadow: 0 0 0 max(100vh, 100vw) rgba(0, 0, 0, .4);*/
-  filter: drop-shadow(0 0 0 max(100vh, 100vw) rgba(0, 0, 0, .4));
+  filter: drop-shadow(0 0 0 max(100vh, 100vw) rgba(0, 0, 0, 0.4));
+}
+
+.textdiv {
+  outline: none;
+  border-style: hidden;
+  border-width: 0px;
+  color: black;
+  font-family: 'Segoe UI', Verdana, Tahoma, Geneva, sans-serif;
+  font-weight: 400;
+  font-size: 12pt;
+  width: 195px;
+  border-radius: 5px;
+  overflow: auto;
+  min-height: 25px;
+  height: fit-content;
+  white-space: pre-wrap;
+}
+
+textarea {
+  outline: none;
+  border-style: hidden;
+  border-width: 0px;
+  resize: none;
+  font-family: 'Segoe UI', Verdana, Tahoma, Geneva, sans-serif;
+  font-weight: 400;
+  font-size: 12pt;
+  height: 25px;
+  width: 195px;
+  border-radius: 5px;
 }
 
 button.add {
@@ -66,19 +94,6 @@ button.add {
 button.add:hover {
   opacity: 0.8;
   cursor: pointer;
-}
-
-textarea {
-  outline: none;
-  border-style: hidden;
-  border-width: 0px;
-  resize: none;
-  font-family: 'Segoe UI', Verdana, Tahoma, Geneva, sans-serif;
-  font-weight: 400;
-  font-size: 12pt;
-  height: 25px;
-  width: 190px;
-  border-radius: 5px;
 }
 
 input {
@@ -132,5 +147,5 @@ input:hover {
 
 #context-menu .item:hover {
   background: white;
-  color: black
+  color: black;
 }
