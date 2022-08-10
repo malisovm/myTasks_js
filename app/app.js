@@ -61,17 +61,17 @@ class TaskField extends HTMLElement {
       document.querySelector('#changeColorInput').value = '#ffffff'
     }
 
-    let textdiv = document.createElement('div')
-    textdiv.droppable = 'true'
+    let textDiv = document.createElement('div')
+    textDiv.droppable = 'true'
     let textarea
-    this.appendChild(textdiv)
-    textdiv.style.backgroundColor = this.style.backgroundColor
-    textdiv.classList.add('textdiv')
-    textdiv.onclick = () => {
+    this.appendChild(textDiv)
+    textDiv.style.backgroundColor = this.style.backgroundColor
+    textDiv.classList.add('textDiv')
+    textDiv.onclick = () => {
       textarea = document.createElement('textarea')
       textarea.spellcheck = false
-      textarea.value = textdiv.innerHTML
-      textdiv.replaceWith(textarea)
+      textarea.value = textDiv.innerHTML
+      textDiv.replaceWith(textarea)
 
       textarea.oninput = () => {
         textarea.style.height = '1px'
@@ -122,8 +122,8 @@ class TaskField extends HTMLElement {
       textarea.focus()
     }
     const editEnd = () => {
-      textdiv.innerHTML = textarea.value
-      textarea.replaceWith(textdiv)
+      textDiv.innerHTML = textarea.value
+      textarea.replaceWith(textDiv)
     }
   }
 }
@@ -165,14 +165,14 @@ async function addColumn(fromSaved) {
     columns.length
   }" style="grid-column: ${columns.length}">
   <input is="task-type" value="Enter task type" onfocus="this.value=''">
-  <button class="add" onclick="addTask('column${
+  <button class="add addTask" onclick="addTask('column${
     columns.length
   }')">+ Add task</button>
   </div>
   <div class="column" id="column${columns.length + 1}" style="grid-column: ${
     columns.length + 1
   }">
-  <button class="add" onclick="addColumnAndTask()" droppable="true">+ Add task type</button>
+  <button class="add addTaskType" onclick="addColumnAndTask()" droppable="true">+ Add task type</button>
   </div>`
   let lastColumn = columns[columns.length - 1]
   lastColumn.insertAdjacentHTML('beforebegin', newColumn)
@@ -260,7 +260,7 @@ const removeColumn = async (event) => {
         // changing the 'add task' buttons
         col.children[
           col.children.length - 1
-        ].outerHTML = `<button class="add" onclick="addTask('column${colNum}')">+ Add task</button>`
+        ].outerHTML = `<button class="add addTask" onclick="addTask('column${colNum}')">+ Add task</button>`
         // changing tasks
         col.children.forEach(async (taskToUpdateColumn) => {
           let PUTpath
@@ -309,8 +309,8 @@ window.onload = async () => {
   })
     .then((response) => response.text())
     .then((responseText) => JSON.parse(responseText))
-    body.style.backgroundColor = savedBodyColor.value
-    changeBodyColorDiv.lastChild.value = savedBodyColor.value
+  body.style.backgroundColor = savedBodyColor.value
+  changeBodyColorDiv.lastChild.value = savedBodyColor.value
 
   if (savedTaskTypes.length !== 0) {
     console.log('Server: found saved task types\n', savedTaskTypes)
@@ -358,7 +358,7 @@ window.onload = async () => {
 document.body.addEventListener('click', (event) => {
   if (
     !event.target.classList.contains('item') &&
-    !event.target.classList.contains('textdiv') &&
+    !event.target.classList.contains('textDiv') &&
     !event.target.classList.contains('add')
   ) {
     contextMenu.style.display = 'none'
@@ -394,15 +394,26 @@ const moveTask = (sourceElem, targetElem) => {
   let targetCol = getColNum(targetElem)
   let sourceRow = getRowNum(sourceElem)
   let targetRow = getRowNum(targetElem)
+  let changesWereMade
   if (sourceCol === targetCol && !targetElem.classList.contains('add')) {
+    changesWereMade = true
     if (sourceRow > targetRow) {
       insertBefore(sourceElem, targetElem)
     } else if (sourceRow < targetRow) {
       insertAfter(sourceElem, targetElem)
     }
-  } else if (sourceCol === targetCol && targetElem.classList.contains('add')) {
+  } else if (
+    sourceCol === targetCol &&
+    targetElem.classList.contains('add') &&
+    sourceElem !== targetElem.previousElementSibling
+  ) {
+    changesWereMade = true
     insertBefore(sourceElem, targetElem)
-  } else if (sourceCol !== targetCol) {
+  } else if (
+    sourceCol !== targetCol &&
+    !targetElem.classList.contains('addTaskType')
+  ) {
+    changesWereMade = true
     insertBefore(sourceElem, targetElem)
   }
 
@@ -422,10 +433,12 @@ const moveTask = (sourceElem, targetElem) => {
       }
     })
   }
-  if (sourceCol !== targetCol) {
-    updateTasksInDb(sourceCol)
-    updateTasksInDb(targetCol)
-  } else updateTasksInDb(sourceCol)
+  if (changesWereMade === true) {
+    if (sourceCol !== targetCol) {
+      updateTasksInDb(sourceCol)
+      updateTasksInDb(targetCol)
+    } else updateTasksInDb(sourceCol)
+  }
 }
 
 document.addEventListener('dragstart', (event) => {
@@ -441,7 +454,7 @@ document.addEventListener('drop', (event) => {
     event.target.classList.contains('add')
   ) {
     moveTask(dragged, event.target)
-  } else if (event.target.classList.contains('textdiv')) {
+  } else if (event.target.classList.contains('textDiv')) {
     moveTask(dragged, event.target.parentElement)
   }
 })

@@ -84,7 +84,7 @@ task-field:focus-within {
   filter: drop-shadow(0 0 0 max(100vh, 100vw) rgba(0, 0, 0, 0.4));
 }
 
-.textdiv {
+.textDiv {
   outline: none;
   border-style: hidden;
   border-width: 0px;
