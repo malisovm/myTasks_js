@@ -12,8 +12,8 @@ function insertAfter(newNode, existingNode) {
 function insertBefore(newNode, existingNode) {
   existingNode.parentNode.insertBefore(newNode, existingNode)
 }
-const rgba2hex = (rgba) =>
-  `#${rgba
+function rgba2hex(rgba) {
+  return `#${rgba
     .match(/^rgba?\((\d+),\s*(\d+),\s*(\d+)(?:,\s*(\d+\.{0,1}\d*))?\)$/)
     .slice(1)
     .map((n, i) =>
@@ -23,6 +23,7 @@ const rgba2hex = (rgba) =>
         .replace('NaN', '')
     )
     .join('')}`
+}
 const bodyColor = rgba2hex(window.getComputedStyle(body).backgroundColor)
 
 function column(col) {
@@ -38,9 +39,9 @@ function getRowNum(elem) {
   return [...elem.parentElement.children].indexOf(elem)
 }
 
-/*a taskField as a custom stylable html element that contains a <textarea> that interacts with mongodb on backend
-a taskType is the header at the top of each column in the UI that can be renamed by the user
- * focus() functions ensure that new tasks get focus, so that when they lose it ("onblur" event) a new db entry is created or updated */
+/*a taskField is a custom stylable html element that contains a <div> that turns into a <textarea> upon click. This textarea that interacts with mongodb on backend
+a taskType is a renamable header at the top of each column
+ * click() functions ensure that new tasks get a <textarea>, so that when they lose focus ("onblur" event) a new db entry is created or updated */
 
 class TaskField extends HTMLElement {
   constructor() {
@@ -56,8 +57,7 @@ class TaskField extends HTMLElement {
       document.querySelector('#changeColorInput').value = rgba2hex(
         this.style.backgroundColor
       )
-    }
-    else {
+    } else {
       document.querySelector('#changeColorInput').value = '#ffffff'
     }
 
@@ -300,6 +300,18 @@ window.onload = async () => {
     .then((response) => response.text())
     .then((responseText) => JSON.parse(responseText))
 
+  let savedBodyColor = await fetch('/globals', {
+    method: 'GET',
+    headers: {
+      'Content-Type': 'application/json',
+      id: 'bodyColor',
+    },
+  })
+    .then((response) => response.text())
+    .then((responseText) => JSON.parse(responseText))
+    body.style.backgroundColor = savedBodyColor.value
+    changeBodyColorDiv.lastChild.value = savedBodyColor.value
+
   if (savedTaskTypes.length !== 0) {
     console.log('Server: found saved task types\n', savedTaskTypes)
     for (let i = 0; i < savedTaskTypes.length; i++) {
@@ -366,9 +378,15 @@ changeColorInput.oninput = async () => {
 }
 
 const changeBodyColorDiv = document.querySelector('#changeBodyColorDiv')
-changeBodyColorDiv.lastChild.value = bodyColor
 changeBodyColorDiv.oninput = async () => {
   body.style.backgroundColor = changeBodyColorDiv.lastChild.value
+  await fetch('/globals', {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', id: 'bodyColor' },
+    body: JSON.stringify({ value: changeBodyColorDiv.lastChild.value }),
+  })
+    .then((response) => response.text())
+    .then((responseText) => console.log(responseText))
 }
 
 const moveTask = (sourceElem, targetElem) => {

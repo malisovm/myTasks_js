@@ -3,7 +3,6 @@ html {
   width: 100%;
 }
 body {
-  background-color: #7f3594;
   margin: 0;
   padding: 0;
   min-height: 100%;
@@ -37,12 +36,19 @@ body {
   font-style: italic;
   padding: 5px;
   padding-right: 20px;
+  padding-left: 25px;
+  cursor: default;
 }
 
 #changeBodyColorDiv {
   font-weight: bold;
   vertical-align: center;
   white-space: nowrap;
+  cursor: default;
+}
+
+#changeBodyColorDiv > * {
+  cursor: pointer;
 }
 
 #filler {

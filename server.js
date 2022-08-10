@@ -10,8 +10,8 @@ const JSONParser = express.json({ type: 'application/json' })
 
 mongoose.connect(
   //atlas mongodb
-  'mongodb+srv://user12345:12345@cluster1.mgmwwie.mongodb.net',
-  //'mongodb://localhost:27017/tasksdb',
+  //'mongodb+srv://user12345:12345@cluster1.mgmwwie.mongodb.net',
+  'mongodb://localhost:27017/tasksdb',
   {
     useUnifiedTopology: true,
     useNewUrlParser: true,
@@ -39,6 +39,23 @@ const tasksTypeScheme = new Schema({
   text: { type: String, default: 'Enter task type' },
 })
 const TaskType = mongoose.model('TaskType', tasksTypeScheme)
+
+const globalScheme = new Schema(
+  {
+    value: String,
+    _id: String,
+  },
+  { _id: false }
+)
+const Global = mongoose.model('Global', globalScheme)
+
+Global.findById('bodyColor', (err, found) => {
+  if (!found) {
+    const bodyColor = new Global({ value: '#7f3594' })
+    bodyColor._id = 'bodyColor'
+    bodyColor.save()
+  }
+})
 
 expressServer.post('/tasks', JSONParser, async (request, response) => {
   let newTask = new Task(request.body)
@@ -96,6 +113,19 @@ expressServer.put('/tasktypes', JSONParser, async (request, response) => {
     })
 })
 
+expressServer.put('/globals', JSONParser, async (request, response) => {
+  await Global.findByIdAndUpdate(request.headers.id.replace(/['"]+/g, ''), {
+    value: request.body.value,
+  })
+    .then(() => {
+      console.log(`Updated global variable "${request.headers.id}"`)
+      response.send(`Server: updated global variable "${request.headers.id}"`)
+    })
+    .catch((err) => {
+      if (err) return console.log(err)
+    })
+})
+
 expressServer.delete('/tasks', (request, response) => {
   Task.findByIdAndDelete(request.headers.id.replace(/['"]+/g, ''))
     .then(() => {
@@ -129,5 +159,12 @@ expressServer.get('/tasktypes', (request, response) => {
   TaskType.find({}, function (err, taskTypes) {
     if (err) console.log(err)
     response.send(taskTypes)
+  })
+})
+
+expressServer.get('/globals', (request, response) => {
+  Global.findById(request.headers.id.replace(/['"]+/g, ''), function (err, foundVar) {
+    if (err) console.log(err)
+    response.send(foundVar)
   })
 })
