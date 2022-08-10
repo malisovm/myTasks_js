@@ -8,6 +8,9 @@ body {
   padding: 0;
   min-height: 100%;
   min-width: 100%;
+  color: white;
+  font-family: 'Segoe UI', Verdana, Tahoma, Geneva, sans-serif;
+  font-size: 12pt;
 }
 
 #darkenLayer {
@@ -23,13 +26,36 @@ body {
   z-index: 1;
 }
 
+#topContainer {
+  background-color: #5d5b64;
+}
+
+#myTasksLogo {
+  font-family: Georgia, 'Times New Roman', Times, serif;
+  font-size: 18pt;
+  font-weight: bold;
+  font-style: italic;
+  padding: 5px;
+  padding-right: 20px;
+}
+
+#changeBodyColorDiv {
+  font-weight: bold;
+  vertical-align: center;
+  white-space: nowrap;
+}
+
+#filler {
+  width: 100%;
+}
+
 #task-grid {
   display: inline-grid;
   column-gap: 25px;
   grid-template-columns: max-content;
   align-items: flex-start;
   margin-left: 25px;
-  margin-top: 50px;
+  margin-top: 25px;
 }
 
 .column {
@@ -113,19 +139,6 @@ input:focus {
 
 input:hover {
   opacity: 0.8;
-}
-
-#myTasksLogo {
-  font-family: Georgia, 'Times New Roman', Times, serif;
-  font-size: 18pt;
-  font-weight: bold;
-  color: white;
-  background-color: #5d5b64;
-  padding: 5px;
-  text-align: center;
-  font-style: italic;
-  width: 100%;
-  position: fixed;
 }
 
 #context-menu {

@@ -1,4 +1,5 @@
 HTMLCollection.prototype.forEach = Array.prototype.forEach
+const body = document.querySelector('body')
 var taskGrid = document.querySelector('#task-grid')
 var columns = document.querySelector('#task-grid').children
 var contextMenu = document.querySelector('#context-menu')
@@ -22,6 +23,7 @@ const rgba2hex = (rgba) =>
         .replace('NaN', '')
     )
     .join('')}`
+const bodyColor = rgba2hex(window.getComputedStyle(body).backgroundColor)
 
 function column(col) {
   return columns[col - 1]
@@ -54,7 +56,8 @@ class TaskField extends HTMLElement {
       document.querySelector('#changeColorInput').value = rgba2hex(
         this.style.backgroundColor
       )
-    } else {
+    }
+    else {
       document.querySelector('#changeColorInput').value = '#ffffff'
     }
 
@@ -360,6 +363,12 @@ changeColorInput.oninput = async () => {
   })
     .then((response) => response.text())
     .then((responseText) => console.log(responseText))
+}
+
+const changeBodyColorDiv = document.querySelector('#changeBodyColorDiv')
+changeBodyColorDiv.lastChild.value = bodyColor
+changeBodyColorDiv.oninput = async () => {
+  body.style.backgroundColor = changeBodyColorDiv.lastChild.value
 }
 
 const moveTask = (sourceElem, targetElem) => {
