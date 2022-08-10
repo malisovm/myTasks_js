@@ -26,7 +26,7 @@ body {
 }
 
 #topContainer {
-  background-color: #5d5b64;
+  background-color: #514E57
 }
 
 #myTasksLogo {
@@ -35,7 +35,7 @@ body {
   font-weight: bold;
   font-style: italic;
   padding: 5px;
-  padding-right: 20px;
+  padding-right: 15px;
   padding-left: 25px;
   cursor: default;
 }
@@ -45,6 +45,12 @@ body {
   vertical-align: center;
   white-space: nowrap;
   cursor: default;
+  padding: 10px;
+}
+
+#changeBodyColorDiv:hover {
+  background-color: #86838A;
+  border-radius: 5px;
 }
 
 #changeBodyColorDiv > * {
@@ -160,7 +166,7 @@ input:hover {
   padding: 8px 10px;
   font-family: 'Segoe UI', Verdana, Tahoma, Geneva, sans-serif;
   font-size: 12pt;
-  color: #eee;
+  color: white;
   cursor: pointer;
   border-radius: inherit;
 }
@@ -168,4 +174,43 @@ input:hover {
 #context-menu .item:hover {
   background: white;
   color: black;
+}
+
+#helpButton {
+  font-weight: bold;
+  vertical-align: center;
+  white-space: nowrap;
+  cursor: default;
+  padding: 10px;
+  background: transparent;
+  color: white;
+  border: none;
+  font-family: 'Segoe UI', Verdana, Tahoma, Geneva, sans-serif;
+  font-size: 12pt;
+}
+
+#helpButton:hover {
+  background-color: #898a83;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+#helpContainer {
+  position: absolute;
+}
+
+#helpText {
+  display: none;
+  background: #dddddd;
+  color: black;
+  border-radius: 5px;
+  border-width: 2px;
+  border-color: black;
+  border-style:solid;
+  padding: 10px;
+  width: 200px;
+  position: absolute;
+  top: 55px;
+  left: -55px;
+  box-shadow: 3px 3px 4px #444444;
 }

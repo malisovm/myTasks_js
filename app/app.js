@@ -164,7 +164,7 @@ async function addColumn(fromSaved) {
   let newColumn = `<div class="column" id="column${
     columns.length
   }" style="grid-column: ${columns.length}">
-  <input is="task-type" value="Enter task type" onfocus="this.value=''">
+  <input is="task-type" title="Right click to remove column" value="Enter task type" onfocus="this.value=''">
   <button class="add addTask" onclick="addTask('column${
     columns.length
   }')">+ Add task</button>
@@ -463,4 +463,11 @@ function swapColumns(col1, col2) {
   let tmp = col2.outerHTML
   col2.outerHTML = col1.outerHTML
   col1.outerHTML = tmp
+}
+
+document.querySelector('#helpButton').onclick = () => {
+  document.querySelector('#helpText').style.display = 'block'
+}
+document.querySelector('#helpButton').onblur = () => {
+  document.querySelector('#helpText').style.display = 'none'
 }
