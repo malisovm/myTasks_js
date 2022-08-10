@@ -42,7 +42,6 @@ body {
 
 #changeBodyColorDiv {
   font-weight: bold;
-  vertical-align: center;
   white-space: nowrap;
   cursor: default;
   padding: 10px;
@@ -196,7 +195,7 @@ input:hover {
 }
 
 #helpContainer {
-  position: absolute;
+  position: relative;
 }
 
 #helpText {

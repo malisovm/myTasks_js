@@ -343,18 +343,6 @@ window.onload = async () => {
   }
 }
 
-//serverWorkers enable PWA functionality
-//window.addEventListener('load', async () => {
-//  if ('serviceWorker' in navigator) {
-//    try {
-//      const reg = await navigator.serviceWorker.register('serviceworkers.js')
-//      console.log('ServiceWorker registered', reg)
-//    } catch (err) {
-//      console.log('ServiceWorker registration error', err)
-//    }
-//  }
-//})
-
 document.body.addEventListener('click', (event) => {
   if (
     !event.target.classList.contains('item') &&
