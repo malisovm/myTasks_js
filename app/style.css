@@ -19,7 +19,6 @@ body {
   min-height: 100%;
   min-width: 100%;
   position: absolute;
-  z-index: 2;
   opacity: 0.4;
   display: none;
   z-index: 1;
@@ -85,9 +84,9 @@ task-field {
   cursor: pointer;
 }
 
-task-field:focus-within {
+/*task-field:focus-within {
   filter: drop-shadow(0 0 0 max(100vh, 100vw) rgba(0, 0, 0, 0.4));
-}
+}*/
 
 .textDiv {
   outline: none;
