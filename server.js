@@ -10,8 +10,9 @@ const JSONParser = express.json({ type: 'application/json' })
 
 mongoose.connect(
   //atlas mongodb
-  'mongodb+srv://user12345:12345@cluster1.mgmwwie.mongodb.net',
+  'mongodb+srv://user12345:<password>@cluster1.mgmwwie.mongodb.net/myTasks_js',
   //'mongodb://localhost:27017/tasksdb',
+
   {
     useUnifiedTopology: true,
     useNewUrlParser: true,
