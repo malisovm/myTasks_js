@@ -1,0 +1,1 @@
+This is a pure JavaScript version of myTasks frontend with an Express backend and Mongo database. A more functional React-based version is [here](https://github.com/malisovm/mytasks_react).
