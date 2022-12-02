@@ -1,3 +1,5 @@
-myTasks is a Kanban-style task manager. This is a version created to learn JS, Express and MongoDB with no frontend frameworks.
+# Pure JS Kanban board
 
-Deprecated in favor of the more functional [React-based version](https://github.com/malisovm/mytasks_react).
+This is an attempt to write a minimalistic Kanban-style task manager with only vanilla JS (no frontend fremeworks). Works on custom HTML elements.
+
+A more functional React-based version is available [here](https://github.com/malisovm/mytasks_react).
